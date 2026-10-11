@@ -1,4 +1,4 @@
-package com.jannlawm.alssdosanjuan.data.repository
+﻿package com.jannlawm.alssdosanjuan.data.repository
 
 import android.content.Context
 import com.jannlawm.alssdosanjuan.data.local.AppDbHelper
@@ -32,10 +32,16 @@ class ModuleRepository(context: Context) {
         }
     }
 
-    suspend fun fetchAndCacheModules(strandId: Int?, level: String?, query: String?): Result<List<ModuleItem>> {
+    suspend fun fetchAndCacheModules(
+        strandId: Int? = null,
+        level: String? = null,
+        subLevel: String? = null,
+        language: String? = null,
+        query: String? = null
+    ): Result<List<ModuleItem>> {
         return withContext(Dispatchers.IO) {
             try {
-                val response = apiService.getModules(strandId, level, query)
+                val response = apiService.getModules(strandId, level, subLevel, language, query)
                 if (response.isSuccessful && response.body() != null) {
                     val modules = response.body()!!.data
                     val entities = modules.map { m ->
@@ -44,9 +50,11 @@ class ModuleRepository(context: Context) {
                             title = m.title,
                             description = m.description,
                             level = m.level,
+                            subLevel = m.sub_level,
+                            language = m.language,
                             moduleNumber = m.module_number,
                             fileSize = m.file_size,
-                            strandTitle = m.strand?.title,
+                            strandTitle = m.strand?.title ?: m.strand?.name,
                             localPdfPath = null
                         )
                     }

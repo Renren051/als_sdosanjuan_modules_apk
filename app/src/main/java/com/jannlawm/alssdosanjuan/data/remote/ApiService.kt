@@ -1,4 +1,4 @@
-package com.jannlawm.alssdosanjuan.data.remote
+﻿package com.jannlawm.alssdosanjuan.data.remote
 
 import com.jannlawm.alssdosanjuan.data.model.*
 import okhttp3.ResponseBody
@@ -23,9 +23,11 @@ interface ApiService {
 
     @GET("modules")
     suspend fun getModules(
-        @Query("strand_id") strandId: Int?,
-        @Query("level") level: String?,
-        @Query("q") query: String?
+        @Query("strand_id") strandId: Int? = null,
+        @Query("level") level: String? = null,
+        @Query("sub_level") subLevel: String? = null,
+        @Query("language") language: String? = null,
+        @Query("q") query: String? = null
     ): Response<ModulesResponse>
 
     @GET("modules/{id}/download")

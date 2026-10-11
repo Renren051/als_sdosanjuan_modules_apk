@@ -1,4 +1,4 @@
-package com.jannlawm.alssdosanjuan.data.local
+﻿package com.jannlawm.alssdosanjuan.data.local
 
 import androidx.room.Entity
 import androidx.room.PrimaryKey
@@ -9,7 +9,9 @@ data class CachedModuleEntity(
     val title: String,
     val description: String?,
     val level: String,
-    val moduleNumber: Int,
+    val subLevel: String? = null,
+    val language: String? = null,
+    val moduleNumber: String? = null,
     val fileSize: String?,
     val strandTitle: String?,
     val localPdfPath: String?

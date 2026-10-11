@@ -1,4 +1,4 @@
-package com.jannlawm.alssdosanjuan.data.model
+﻿package com.jannlawm.alssdosanjuan.data.model
 
 data class StrandsResponse(
     val success: Boolean,
@@ -8,8 +8,9 @@ data class StrandsResponse(
 data class Strand(
     val id: Int,
     val code: String,
-    val title: String,
-    val modules_count: Int
+    val name: String? = null,
+    val title: String? = null,
+    val modules_count: Int = 0
 )
 
 data class ModulesResponse(
@@ -22,7 +23,11 @@ data class ModuleItem(
     val title: String,
     val description: String?,
     val level: String,
-    val module_number: Int,
-    val file_size: String?,
-    val strand: Strand?
+    val sub_level: String? = null,
+    val language: String? = null,
+    val module_number: String? = null,
+    val pdf_file_path: String? = null,
+    val pdf_file_size: Long? = null,
+    val file_size: String? = null,
+    val strand: Strand? = null
 )

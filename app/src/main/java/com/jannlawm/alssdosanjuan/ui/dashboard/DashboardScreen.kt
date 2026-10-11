@@ -1,4 +1,4 @@
-package com.jannlawm.alssdosanjuan.ui.dashboard
+﻿package com.jannlawm.alssdosanjuan.ui.dashboard
 
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.clickable
@@ -103,10 +103,10 @@ fun DashboardScreen(
                 shape = MaterialTheme.shapes.medium
             )
 
-            Spacer(modifier = Modifier.height(16.dp))
+            Spacer(modifier = Modifier.height(14.dp))
 
-            Text(text = "Learning Strands", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, color = DepEdBlue)
-            Spacer(modifier = Modifier.height(8.dp))
+            Text(text = "Learning Strands", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold, color = DepEdBlue)
+            Spacer(modifier = Modifier.height(6.dp))
 
             // Strands Horizontal List
             LazyRow(
@@ -128,9 +128,66 @@ fun DashboardScreen(
                 }
             }
 
-            Spacer(modifier = Modifier.height(16.dp))
+            Spacer(modifier = Modifier.height(12.dp))
 
-            Text(text = "Self-Learning Modules", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, color = DepEdBlue)
+            // Sub-Level & Language Filter Chips (A&E Elementary)
+            Text(text = "A&E Elementary Program Tracks", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold, color = DepEdBlue)
+            Spacer(modifier = Modifier.height(6.dp))
+
+            LazyRow(
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                item {
+                    FilterChip(
+                        selected = state.selectedSubLevel == null && state.selectedLanguage == null,
+                        onClick = {
+                            dashboardViewModel.filterBySubLevel(null)
+                            dashboardViewModel.filterByLanguage(null)
+                        },
+                        label = { Text("All Tracks") }
+                    )
+                }
+                item {
+                    FilterChip(
+                        selected = state.selectedSubLevel == "Lower Elementary",
+                        onClick = {
+                            dashboardViewModel.filterBySubLevel(if (state.selectedSubLevel == "Lower Elementary") null else "Lower Elementary")
+                        },
+                        label = { Text("Lower Elementary") }
+                    )
+                }
+                item {
+                    FilterChip(
+                        selected = state.selectedSubLevel == "Advanced Elementary",
+                        onClick = {
+                            dashboardViewModel.filterBySubLevel(if (state.selectedSubLevel == "Advanced Elementary") null else "Advanced Elementary")
+                        },
+                        label = { Text("Advanced Elementary") }
+                    )
+                }
+                item {
+                    FilterChip(
+                        selected = state.selectedLanguage == "English",
+                        onClick = {
+                            dashboardViewModel.filterByLanguage(if (state.selectedLanguage == "English") null else "English")
+                        },
+                        label = { Text("English") }
+                    )
+                }
+                item {
+                    FilterChip(
+                        selected = state.selectedLanguage == "Filipino",
+                        onClick = {
+                            dashboardViewModel.filterByLanguage(if (state.selectedLanguage == "Filipino") null else "Filipino")
+                        },
+                        label = { Text("Filipino") }
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.height(14.dp))
+
+            Text(text = "Self-Learning Modules (${state.modules.size})", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, color = DepEdBlue)
             Spacer(modifier = Modifier.height(8.dp))
 
             if (state.isLoading) {
@@ -151,10 +208,10 @@ fun DashboardScreen(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .clickable { onModuleClick(module) },
-                            elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
+                            elevation = CardDefaults.cardElevation(defaultElevation = 3.dp),
                             colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
                         ) {
-                            Column(modifier = Modifier.padding(16.dp)) {
+                            Column(modifier = Modifier.padding(14.dp)) {
                                 Row(
                                     modifier = Modifier.fillMaxWidth(),
                                     horizontalArrangement = Arrangement.SpaceBetween,
@@ -165,24 +222,40 @@ fun DashboardScreen(
                                         shape = MaterialTheme.shapes.small
                                     ) {
                                         Text(
-                                            text = "Module #${module.module_number}",
+                                            text = module.module_number ?: "Module",
                                             modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
                                             style = MaterialTheme.typography.labelMedium,
                                             color = DepEdRed,
                                             fontWeight = FontWeight.Bold
                                         )
                                     }
-                                    Surface(
-                                        color = DepEdBlue.copy(alpha = 0.12f),
-                                        shape = MaterialTheme.shapes.small
-                                    ) {
-                                        Text(
-                                            text = module.level.replace("_", " "),
-                                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
-                                            style = MaterialTheme.typography.labelMedium,
-                                            color = DepEdBlue,
-                                            fontWeight = FontWeight.SemiBold
-                                        )
+                                    Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                                        if (!module.language.isNullOrEmpty()) {
+                                            Surface(
+                                                color = if (module.language == "Filipino") DepEdRed.copy(alpha = 0.15f) else DepEdBlue.copy(alpha = 0.15f),
+                                                shape = MaterialTheme.shapes.small
+                                            ) {
+                                                Text(
+                                                    text = module.language,
+                                                    modifier = Modifier.padding(horizontal = 6.dp, vertical = 4.dp),
+                                                    style = MaterialTheme.typography.labelSmall,
+                                                    color = if (module.language == "Filipino") DepEdRed else DepEdBlue,
+                                                    fontWeight = FontWeight.Bold
+                                                )
+                                            }
+                                        }
+                                        Surface(
+                                            color = DepEdBlue.copy(alpha = 0.12f),
+                                            shape = MaterialTheme.shapes.small
+                                        ) {
+                                            Text(
+                                                text = module.sub_level ?: module.level.replace("_", " "),
+                                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                                                style = MaterialTheme.typography.labelMedium,
+                                                color = DepEdBlue,
+                                                fontWeight = FontWeight.SemiBold
+                                            )
+                                        }
                                     }
                                 }
                                 Spacer(modifier = Modifier.height(8.dp))
@@ -193,7 +266,7 @@ fun DashboardScreen(
                                 }
                                 if (module.strand != null) {
                                     Spacer(modifier = Modifier.height(8.dp))
-                                    Text(text = "Strand: ${module.strand.title}", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.Medium)
+                                    Text(text = "Strand: ${module.strand.title ?: module.strand.name ?: module.strand.code}", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.Medium)
                                 }
                             }
                         }

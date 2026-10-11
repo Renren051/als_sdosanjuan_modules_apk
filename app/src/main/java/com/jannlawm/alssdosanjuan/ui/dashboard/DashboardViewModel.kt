@@ -1,4 +1,4 @@
-package com.jannlawm.alssdosanjuan.ui.dashboard
+﻿package com.jannlawm.alssdosanjuan.ui.dashboard
 
 import android.app.Application
 import androidx.lifecycle.AndroidViewModel
@@ -17,6 +17,8 @@ data class DashboardUiState(
     val modules: List<ModuleItem> = emptyList(),
     val selectedStrandId: Int? = null,
     val selectedLevel: String? = null,
+    val selectedSubLevel: String? = null,
+    val selectedLanguage: String? = null,
     val searchQuery: String = "",
     val isLoading: Boolean = false,
     val errorMessage: String? = null
@@ -36,7 +38,13 @@ class DashboardViewModel(application: Application) : AndroidViewModel(applicatio
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true, errorMessage = null) }
             val strandsResult = moduleRepository.fetchStrands()
-            val modulesResult = moduleRepository.fetchAndCacheModules(_uiState.value.selectedStrandId, _uiState.value.selectedLevel, _uiState.value.searchQuery)
+            val modulesResult = moduleRepository.fetchAndCacheModules(
+                _uiState.value.selectedStrandId,
+                _uiState.value.selectedLevel,
+                _uiState.value.selectedSubLevel,
+                _uiState.value.selectedLanguage,
+                _uiState.value.searchQuery
+            )
 
             _uiState.update { state ->
                 state.copy(
@@ -56,6 +64,16 @@ class DashboardViewModel(application: Application) : AndroidViewModel(applicatio
 
     fun filterByLevel(level: String?) {
         _uiState.update { it.copy(selectedLevel = level) }
+        loadStrandsAndModules()
+    }
+
+    fun filterBySubLevel(subLevel: String?) {
+        _uiState.update { it.copy(selectedSubLevel = subLevel) }
+        loadStrandsAndModules()
+    }
+
+    fun filterByLanguage(language: String?) {
+        _uiState.update { it.copy(selectedLanguage = language) }
         loadStrandsAndModules()
     }
 
