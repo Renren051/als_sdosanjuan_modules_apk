@@ -198,6 +198,35 @@ class DashboardViewModel(application: Application) : AndroidViewModel(applicatio
         }
     }
 
+    fun deleteDownloadedModule(moduleId: Int) {
+        if (_uiState.value.downloadingModuleIds.contains(moduleId)) return
+
+        viewModelScope.launch {
+            val deleted = withContext(Dispatchers.IO) {
+                moduleRepository.deleteCachedPdfFile(moduleId)
+            }
+
+            if (deleted) {
+                _uiState.update { state ->
+                    val remainingDownloadedIds = state.downloadedModuleIds - moduleId
+                    val visibleModules = if (state.filterDownloadedOnly) {
+                        state.rawModules.filter { remainingDownloadedIds.contains(it.id) }
+                    } else {
+                        state.modules
+                    }
+                    state.copy(
+                        downloadedModuleIds = remainingDownloadedIds,
+                        modules = visibleModules
+                    )
+                }
+            } else {
+                _uiState.update {
+                    it.copy(errorMessage = "Could not delete the downloaded module from this device.")
+                }
+            }
+        }
+    }
+
     fun refreshDownloadedState() {
         viewModelScope.launch(Dispatchers.IO) {
             val downloaded = _uiState.value.rawModules.filter { m ->

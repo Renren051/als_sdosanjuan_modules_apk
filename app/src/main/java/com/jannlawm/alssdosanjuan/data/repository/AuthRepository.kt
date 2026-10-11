@@ -1,7 +1,6 @@
 ﻿package com.jannlawm.alssdosanjuan.data.repository
 
 import android.content.Context
-import com.jannlawm.alssdosanjuan.data.local.AppDbHelper
 import com.jannlawm.alssdosanjuan.data.local.TokenManager
 import com.jannlawm.alssdosanjuan.data.model.LoginRequest
 import com.jannlawm.alssdosanjuan.data.model.User
@@ -12,7 +11,6 @@ import kotlinx.coroutines.withContext
 class AuthRepository(private val context: Context) {
     private val apiService = ApiClient.getApiService(context)
     private val tokenManager = TokenManager(context)
-    private val dbHelper = AppDbHelper(context)
 
     suspend fun login(loginId: String, password: String): Result<User> {
         return withContext(Dispatchers.IO) {
@@ -56,7 +54,7 @@ class AuthRepository(private val context: Context) {
     }
 
     fun logout() {
-        dbHelper.clearModules()
+        // Module metadata is public catalog data used to find downloaded PDFs offline.
         tokenManager.clear()
     }
 }

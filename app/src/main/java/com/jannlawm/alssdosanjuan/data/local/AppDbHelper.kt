@@ -5,7 +5,7 @@ import android.content.Context
 import android.database.sqlite.SQLiteDatabase
 import android.database.sqlite.SQLiteOpenHelper
 
-class AppDbHelper(context: Context) : SQLiteOpenHelper(context, "als_lms.db", null, 2) {
+class AppDbHelper(context: Context) : SQLiteOpenHelper(context, "als_lms.db", null, 4) {
 
     override fun onCreate(db: SQLiteDatabase) {
         db.execSQL("""
@@ -32,11 +32,48 @@ class AppDbHelper(context: Context) : SQLiteOpenHelper(context, "als_lms.db", nu
                 is_synced INTEGER
             )
         """)
+        createGameScoresTable(db)
+        createPlayedGamesTable(db)
     }
 
     override fun onUpgrade(db: SQLiteDatabase, oldVersion: Int, newVersion: Int) {
-        db.execSQL("DROP TABLE IF EXISTS cached_modules")
-        onCreate(db)
+        if (oldVersion < 3) {
+            createGameScoresTable(db)
+        }
+        if (oldVersion < 4) {
+            createPlayedGamesTable(db)
+            db.execSQL("""
+                INSERT OR IGNORE INTO played_module_games (learner_id, module_id)
+                SELECT learner_id, module_id FROM module_game_scores WHERE learner_id IS NOT NULL
+            """)
+        }
+    }
+
+    private fun createGameScoresTable(db: SQLiteDatabase) {
+        db.execSQL("""
+            CREATE TABLE IF NOT EXISTS module_game_scores (
+                attempt_uuid TEXT PRIMARY KEY,
+                learner_id INTEGER,
+                module_id INTEGER NOT NULL,
+                game_type TEXT NOT NULL,
+                score INTEGER NOT NULL,
+                max_score INTEGER NOT NULL,
+                moves INTEGER NOT NULL,
+                elapsed_seconds INTEGER NOT NULL,
+                attempted_at TEXT NOT NULL,
+                is_synced INTEGER NOT NULL DEFAULT 0
+            )
+        """)
+    }
+
+    private fun createPlayedGamesTable(db: SQLiteDatabase) {
+        db.execSQL("""
+            CREATE TABLE IF NOT EXISTS played_module_games (
+                learner_id INTEGER NOT NULL,
+                module_id INTEGER NOT NULL,
+                PRIMARY KEY (learner_id, module_id)
+            )
+        """)
     }
 
     fun clearModules() {
@@ -161,5 +198,84 @@ class AppDbHelper(context: Context) : SQLiteOpenHelper(context, "als_lms.db", nu
         val db = writableDatabase
         val idsStr = moduleIds.joinToString(",")
         db.execSQL("UPDATE telemetry_logs SET is_synced = 1 WHERE module_id IN ($idsStr)")
+    }
+
+    fun saveGameScore(score: GameScoreEntity) {
+        val values = ContentValues().apply {
+            put("attempt_uuid", score.attemptUuid)
+            put("learner_id", score.learnerId)
+            put("module_id", score.moduleId)
+            put("game_type", score.gameType)
+            put("score", score.score)
+            put("max_score", score.maxScore)
+            put("moves", score.moves)
+            put("elapsed_seconds", score.elapsedSeconds)
+            put("attempted_at", score.attemptedAt)
+            put("is_synced", 0)
+        }
+        writableDatabase.insertWithOnConflict(
+            "module_game_scores",
+            null,
+            values,
+            SQLiteDatabase.CONFLICT_REPLACE
+        )
+        markModuleGamePlayed(score.learnerId, score.moduleId)
+    }
+
+    fun hasPlayedModuleGame(learnerId: Int, moduleId: Int): Boolean {
+        val cursor = readableDatabase.rawQuery(
+            "SELECT 1 FROM played_module_games WHERE learner_id = ? AND module_id = ? LIMIT 1",
+            arrayOf(learnerId.toString(), moduleId.toString())
+        )
+        return cursor.use { it.moveToFirst() }
+    }
+
+    fun markModuleGamePlayed(learnerId: Int, moduleId: Int) {
+        val values = ContentValues().apply {
+            put("learner_id", learnerId)
+            put("module_id", moduleId)
+        }
+        writableDatabase.insertWithOnConflict(
+            "played_module_games",
+            null,
+            values,
+            SQLiteDatabase.CONFLICT_IGNORE
+        )
+    }
+
+    fun getUnsyncedGameScores(learnerId: Int): List<GameScoreEntity> {
+        val cursor = readableDatabase.rawQuery(
+            "SELECT * FROM module_game_scores WHERE is_synced = 0 AND learner_id = ? ORDER BY attempted_at ASC",
+            arrayOf(learnerId.toString())
+        )
+        val scores = mutableListOf<GameScoreEntity>()
+        cursor.use {
+            while (it.moveToNext()) {
+                scores.add(
+                    GameScoreEntity(
+                        attemptUuid = it.getString(it.getColumnIndexOrThrow("attempt_uuid")),
+                        learnerId = it.getInt(it.getColumnIndexOrThrow("learner_id")),
+                        moduleId = it.getInt(it.getColumnIndexOrThrow("module_id")),
+                        gameType = it.getString(it.getColumnIndexOrThrow("game_type")),
+                        score = it.getInt(it.getColumnIndexOrThrow("score")),
+                        maxScore = it.getInt(it.getColumnIndexOrThrow("max_score")),
+                        moves = it.getInt(it.getColumnIndexOrThrow("moves")),
+                        elapsedSeconds = it.getInt(it.getColumnIndexOrThrow("elapsed_seconds")),
+                        attemptedAt = it.getString(it.getColumnIndexOrThrow("attempted_at")),
+                        isSynced = it.getInt(it.getColumnIndexOrThrow("is_synced")) == 1
+                    )
+                )
+            }
+        }
+        return scores
+    }
+
+    fun markGameScoresAsSynced(attemptUuids: List<String>) {
+        if (attemptUuids.isEmpty()) return
+        val placeholders = attemptUuids.joinToString(",") { "?" }
+        writableDatabase.execSQL(
+            "UPDATE module_game_scores SET is_synced = 1 WHERE attempt_uuid IN ($placeholders)",
+            attemptUuids.toTypedArray()
+        )
     }
 }

@@ -6,6 +6,8 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.runtime.*
 import androidx.work.ExistingPeriodicWorkPolicy
+import androidx.work.Constraints
+import androidx.work.NetworkType
 import androidx.work.PeriodicWorkRequestBuilder
 import androidx.work.WorkManager
 import com.jannlawm.alssdosanjuan.data.local.TokenManager
@@ -13,11 +15,11 @@ import com.jannlawm.alssdosanjuan.data.model.ModuleItem
 import com.jannlawm.alssdosanjuan.data.model.User
 import com.jannlawm.alssdosanjuan.data.repository.AuthRepository
 import com.jannlawm.alssdosanjuan.data.worker.SyncWorker
-import com.jannlawm.alssdosanjuan.ui.chat.ChatScreen
 import com.jannlawm.alssdosanjuan.ui.dashboard.DashboardScreen
 import com.jannlawm.alssdosanjuan.ui.login.LoginScreen
 import com.jannlawm.alssdosanjuan.ui.module.ModuleDetailScreen
 import com.jannlawm.alssdosanjuan.ui.splash.SplashScreen
+import com.jannlawm.alssdosanjuan.ui.teacherprogress.TeacherProgressScreen
 import com.jannlawm.alssdosanjuan.ui.theme.ALSSDOSanJuanTheme
 import java.util.concurrent.TimeUnit
 
@@ -25,8 +27,8 @@ sealed class Screen {
     object Splash : Screen()
     object Login : Screen()
     object Dashboard : Screen()
+    object TeacherProgress : Screen()
     data class ModuleDetail(val module: ModuleItem) : Screen()
-    object Chat : Screen()
 }
 
 class MainActivity : ComponentActivity() {
@@ -35,10 +37,15 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
 
         // Enqueue WorkManager background sync worker
-        val syncRequest = PeriodicWorkRequestBuilder<SyncWorker>(15, TimeUnit.MINUTES).build()
+        val syncConstraints = Constraints.Builder()
+            .setRequiredNetworkType(NetworkType.CONNECTED)
+            .build()
+        val syncRequest = PeriodicWorkRequestBuilder<SyncWorker>(15, TimeUnit.MINUTES)
+            .setConstraints(syncConstraints)
+            .build()
         WorkManager.getInstance(applicationContext).enqueueUniquePeriodicWork(
             "AlsTelemetrySyncWork",
-            ExistingPeriodicWorkPolicy.KEEP,
+            ExistingPeriodicWorkPolicy.UPDATE,
             syncRequest
         )
 
@@ -87,8 +94,8 @@ class MainActivity : ComponentActivity() {
                                 onModuleClick = { module ->
                                     currentScreen = Screen.ModuleDetail(module)
                                 },
-                                onOpenChat = {
-                                    currentScreen = Screen.Chat
+                                onOpenTeacherProgress = {
+                                    currentScreen = Screen.TeacherProgress
                                 },
                                 onLogout = {
                                     authRepository.logout()
@@ -108,15 +115,14 @@ class MainActivity : ComponentActivity() {
                             }
                         )
                     }
-                    is Screen.Chat -> {
-                        ChatScreen(
-                            onBack = {
-                                currentScreen = Screen.Dashboard
-                            }
+                    is Screen.TeacherProgress -> {
+                        TeacherProgressScreen(
+                            onBack = { currentScreen = Screen.Dashboard }
                         )
                     }
                 }
             }
         }
     }
+
 }

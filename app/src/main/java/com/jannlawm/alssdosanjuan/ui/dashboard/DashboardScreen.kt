@@ -3,6 +3,7 @@ package com.jannlawm.alssdosanjuan.ui.dashboard
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -15,9 +16,9 @@ import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Clear
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Search
-import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.outlined.Book
 import androidx.compose.material.icons.outlined.CloudDownload
+import androidx.compose.material.icons.outlined.DeleteOutline
 import androidx.compose.material.icons.outlined.SearchOff
 import androidx.compose.material3.*
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
@@ -50,11 +51,12 @@ fun DashboardScreen(
     onToggleDarkMode: (Boolean) -> Unit,
     dashboardViewModel: DashboardViewModel = viewModel(),
     onModuleClick: (ModuleItem) -> Unit,
-    onOpenChat: () -> Unit,
+    onOpenTeacherProgress: () -> Unit,
     onLogout: () -> Unit
 ) {
     val state by dashboardViewModel.uiState.collectAsState()
     val context = LocalContext.current
+    var moduleToDelete by remember { mutableStateOf<ModuleItem?>(null) }
 
     LaunchedEffect(user.id) {
         dashboardViewModel.setUser(user)
@@ -62,6 +64,31 @@ fun DashboardScreen(
 
     LaunchedEffect(Unit) {
         dashboardViewModel.refreshDownloadedState()
+    }
+
+    moduleToDelete?.let { module ->
+        AlertDialog(
+            onDismissRequest = { moduleToDelete = null },
+            title = { Text("Delete downloaded module?") },
+            text = {
+                Text("Remove \"${module.title}\" from this device? You can download it again later.")
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        dashboardViewModel.deleteDownloadedModule(module.id)
+                        moduleToDelete = null
+                    }
+                ) {
+                    Text("Delete")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { moduleToDelete = null }) {
+                    Text("Cancel")
+                }
+            }
+        )
     }
 
     Scaffold(
@@ -74,7 +101,7 @@ fun DashboardScreen(
                     ) {
                         Box(
                             modifier = Modifier
-                                .size(40.dp)
+                                .size(38.dp)
                                 .clip(CircleShape)
                                 .background(Color.White.copy(alpha = 0.15f))
                                 .padding(2.dp),
@@ -83,105 +110,110 @@ fun DashboardScreen(
                             Image(
                                 painter = painterResource(id = R.drawable.sdo_als_logo),
                                 contentDescription = "SDO ALS Logo",
-                                modifier = Modifier.size(36.dp)
+                                modifier = Modifier.size(34.dp)
                             )
                         }
-                        Spacer(modifier = Modifier.width(10.dp))
-                        Column(modifier = Modifier.weight(1f)) {
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Column(
+                            modifier = Modifier.weight(1f, fill = false),
+                            verticalArrangement = Arrangement.Center
+                        ) {
                             Text(
                                 text = "DepEd SDO San Juan",
                                 style = MaterialTheme.typography.titleSmall,
                                 color = Color.White,
                                 fontWeight = FontWeight.Bold,
-                                maxLines = 1
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis
                             )
-                            Row(verticalAlignment = Alignment.CenterVertically) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
                                 Text(
                                     text = user.full_name,
                                     style = MaterialTheme.typography.bodySmall,
                                     color = Color.White.copy(alpha = 0.90f),
                                     fontWeight = FontWeight.Medium,
                                     maxLines = 1,
-                                    overflow = TextOverflow.Ellipsis
+                                    overflow = TextOverflow.Ellipsis,
+                                    modifier = Modifier.weight(1f, fill = false)
                                 )
                                 Text(
                                     text = " \u2022 ",
                                     color = DepEdYellow,
                                     fontWeight = FontWeight.Bold,
-                                    fontSize = 12.sp
+                                    fontSize = 11.sp
                                 )
                                 Text(
                                     text = user.trackLabel,
                                     style = MaterialTheme.typography.labelSmall,
                                     color = DepEdYellow,
                                     fontWeight = FontWeight.Bold,
-                                    maxLines = 1
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis,
+                                    modifier = Modifier.weight(1f, fill = false)
                                 )
                             }
                         }
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = DepEdBlue
+                    containerColor = if (isDarkMode) Color(0xFF0F172A) else DepEdBlue
                 ),
                 actions = {
-                    // Theme Toggle Button
-                    IconButton(onClick = { onToggleDarkMode(!isDarkMode) }) {
-                        Icon(
-                            painter = painterResource(
-                                id = if (isDarkMode) R.drawable.ic_light_mode else R.drawable.ic_dark_mode
-                            ),
-                            contentDescription = if (isDarkMode) "Light Mode" else "Dark Mode",
-                            tint = if (isDarkMode) DepEdYellow else Color.White
-                        )
-                    }
-
-                    // Logout Button
-                    OutlinedButton(
-                        onClick = onLogout,
-                        modifier = Modifier
-                            .padding(end = 8.dp)
-                            .height(34.dp),
-                        contentPadding = PaddingValues(horizontal = 10.dp, vertical = 4.dp),
-                        shape = RoundedCornerShape(12.dp),
-                        border = BorderStroke(1.dp, Color.White.copy(alpha = 0.35f)),
-                        colors = ButtonDefaults.outlinedButtonColors(
-                            contentColor = Color.White
-                        )
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(16.dp),
+                        modifier = Modifier.padding(end = 8.dp)
                     ) {
-                        Text(
-                            text = "Logout",
-                            style = MaterialTheme.typography.labelMedium,
-                            fontWeight = FontWeight.Bold
-                        )
+                        // Theme Toggle Button (Dark / Light Mode)
+                        IconButton(
+                            onClick = { onToggleDarkMode(!isDarkMode) },
+                            modifier = Modifier
+                                .size(38.dp)
+                                .clip(RoundedCornerShape(10.dp))
+                                .background(
+                                    if (isDarkMode) Color.White.copy(alpha = 0.12f) else Color.White.copy(alpha = 0.15f)
+                                )
+                                .border(
+                                    width = 1.dp,
+                                    color = Color.White.copy(alpha = 0.35f),
+                                    shape = RoundedCornerShape(10.dp)
+                                )
+                        ) {
+                            Icon(
+                                painter = painterResource(
+                                    id = if (isDarkMode) R.drawable.ic_light_mode else R.drawable.ic_dark_mode
+                                ),
+                                contentDescription = if (isDarkMode) "Switch to Light Mode" else "Switch to Dark Mode",
+                                tint = if (isDarkMode) DepEdYellow else Color.White,
+                                modifier = Modifier.size(19.dp)
+                            )
+                        }
+
+                        // Logout Button
+                        OutlinedButton(
+                            onClick = onLogout,
+                            modifier = Modifier.height(38.dp),
+                            contentPadding = PaddingValues(horizontal = 10.dp, vertical = 0.dp),
+                            shape = RoundedCornerShape(10.dp),
+                            border = BorderStroke(1.dp, Color.White.copy(alpha = 0.35f)),
+                            colors = ButtonDefaults.outlinedButtonColors(
+                                containerColor = if (isDarkMode) Color(0xFF1E293B) else Color.Transparent,
+                                contentColor = Color.White
+                            )
+                        ) {
+                            Text(
+                                text = "Logout",
+                                style = MaterialTheme.typography.labelMedium,
+                                fontWeight = FontWeight.Bold
+                            )
+                        }
                     }
                 }
             )
         },
-        floatingActionButton = {
-            ExtendedFloatingActionButton(
-                onClick = onOpenChat,
-                containerColor = DepEdRed,
-                contentColor = Color.White,
-                shape = RoundedCornerShape(99.dp),
-                elevation = FloatingActionButtonDefaults.elevation(defaultElevation = 8.dp),
-                icon = {
-                    Icon(
-                        imageVector = Icons.Default.Star,
-                        contentDescription = "ALSJay AI",
-                        tint = DepEdYellow,
-                        modifier = Modifier.size(20.dp)
-                    )
-                },
-                text = {
-                    Text(
-                        text = "Ask ALSJay AI",
-                        fontWeight = FontWeight.ExtraBold,
-                        letterSpacing = 0.3.sp
-                    )
-                }
-            )
-        }
     ) { paddingValues ->
         PullToRefreshBox(
             isRefreshing = state.isRefreshing,
@@ -228,6 +260,33 @@ fun DashboardScreen(
                                         style = MaterialTheme.typography.bodySmall
                                     )
                                 }
+                            }
+                        }
+                    }
+                }
+
+                if (user.role in setOf("mobile_teacher", "admin", "super_admin")) {
+                    item {
+                        Card(
+                            modifier = Modifier.fillMaxWidth().clickable(onClick = onOpenTeacherProgress),
+                            shape = RoundedCornerShape(18.dp),
+                            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                            border = BorderStroke(1.dp, DepEdBlue.copy(alpha = 0.2f))
+                        ) {
+                            Row(
+                                modifier = Modifier.fillMaxWidth().padding(16.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.SpaceBetween
+                            ) {
+                                Column(modifier = Modifier.weight(1f)) {
+                                    Text("Student Module Progress", fontWeight = FontWeight.Bold, color = DepEdBlue)
+                                    Text(
+                                        if (user.role == "mobile_teacher") "Review progress for your assigned learners" else "Review synced learner module activity",
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                }
+                                Text("View  ›", color = DepEdBlue, fontWeight = FontWeight.Bold)
                             }
                         }
                     }
@@ -777,76 +836,106 @@ fun DashboardScreen(
                                     )
                                 }
 
-                                // Download Action Button
-                                Surface(
-                                    onClick = {
-                                        if (!isDownloaded && !isDownloading) {
-                                            dashboardViewModel.downloadModule(module.id)
-                                        } else if (isDownloaded) {
-                                            onModuleClick(module)
-                                        }
-                                    },
-                                    shape = RoundedCornerShape(10.dp),
-                                    color = when {
-                                        isDownloaded -> Color(0xFF16A34A) // Emerald Green
-                                        isDownloading -> Color(0xFFE2E8F0)
-                                        else -> MaterialTheme.colorScheme.surfaceVariant
-                                    },
-                                    contentColor = when {
-                                        isDownloaded -> Color.White
-                                        else -> MaterialTheme.colorScheme.onSurfaceVariant
-                                    },
-                                    border = BorderStroke(
-                                        1.dp,
-                                        if (isDownloaded) Color(0xFF15803D) else MaterialTheme.colorScheme.outlineVariant
-                                    ),
-                                    modifier = Modifier.height(34.dp)
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(6.dp)
                                 ) {
-                                    Row(
-                                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
-                                        verticalAlignment = Alignment.CenterVertically,
-                                        horizontalArrangement = Arrangement.Center
+                                    // Download explicitly, or open the cached module.
+                                    Surface(
+                                        onClick = {
+                                            if (isDownloaded) {
+                                                onModuleClick(module)
+                                            } else if (!isDownloading) {
+                                                dashboardViewModel.downloadModule(module.id)
+                                            }
+                                        },
+                                        shape = RoundedCornerShape(10.dp),
+                                        color = when {
+                                            isDownloaded -> Color(0xFF16A34A)
+                                            isDownloading -> Color(0xFFE2E8F0)
+                                            else -> MaterialTheme.colorScheme.surfaceVariant
+                                        },
+                                        contentColor = when {
+                                            isDownloaded -> Color.White
+                                            else -> MaterialTheme.colorScheme.onSurfaceVariant
+                                        },
+                                        border = BorderStroke(
+                                            1.dp,
+                                            if (isDownloaded) Color(0xFF15803D) else MaterialTheme.colorScheme.outlineVariant
+                                        ),
+                                        modifier = Modifier.height(34.dp)
                                     ) {
-                                        if (isDownloading) {
-                                            CircularProgressIndicator(
-                                                modifier = Modifier.size(14.dp),
-                                                strokeWidth = 2.dp,
-                                                color = DepEdBlue
-                                            )
-                                            Spacer(modifier = Modifier.width(6.dp))
-                                            Text(
-                                                text = "Downloading...",
-                                                style = MaterialTheme.typography.labelSmall,
-                                                fontWeight = FontWeight.Bold
-                                            )
-                                        } else if (isDownloaded) {
-                                            Icon(
-                                                imageVector = Icons.Default.Check,
-                                                contentDescription = "Downloaded",
-                                                modifier = Modifier.size(15.dp),
-                                                tint = Color.White
-                                            )
-                                            Spacer(modifier = Modifier.width(5.dp))
-                                            Text(
-                                                text = "Downloaded",
-                                                style = MaterialTheme.typography.labelSmall,
-                                                fontWeight = FontWeight.Bold,
-                                                color = Color.White
-                                            )
-                                        } else {
-                                            Icon(
-                                                imageVector = Icons.Outlined.CloudDownload,
-                                                contentDescription = "Download Module",
-                                                modifier = Modifier.size(16.dp),
-                                                tint = DepEdBlue
-                                            )
-                                            Spacer(modifier = Modifier.width(5.dp))
-                                            Text(
-                                                text = "Download",
-                                                style = MaterialTheme.typography.labelSmall,
-                                                fontWeight = FontWeight.Bold,
-                                                color = DepEdBlue
-                                            )
+                                        Row(
+                                            modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
+                                            verticalAlignment = Alignment.CenterVertically,
+                                            horizontalArrangement = Arrangement.Center
+                                        ) {
+                                            if (isDownloading) {
+                                                CircularProgressIndicator(
+                                                    modifier = Modifier.size(14.dp),
+                                                    strokeWidth = 2.dp,
+                                                    color = DepEdBlue
+                                                )
+                                                Spacer(modifier = Modifier.width(6.dp))
+                                                Text(
+                                                    text = "Downloading...",
+                                                    style = MaterialTheme.typography.labelSmall,
+                                                    fontWeight = FontWeight.Bold
+                                                )
+                                            } else if (isDownloaded) {
+                                                Icon(
+                                                    imageVector = Icons.Outlined.Book,
+                                                    contentDescription = "Open module",
+                                                    modifier = Modifier.size(15.dp),
+                                                    tint = Color.White
+                                                )
+                                                Spacer(modifier = Modifier.width(5.dp))
+                                                Text(
+                                                    text = "Open",
+                                                    style = MaterialTheme.typography.labelSmall,
+                                                    fontWeight = FontWeight.Bold,
+                                                    color = Color.White
+                                                )
+                                            } else {
+                                                Icon(
+                                                    imageVector = Icons.Outlined.CloudDownload,
+                                                    contentDescription = "Download Module",
+                                                    modifier = Modifier.size(16.dp),
+                                                    tint = DepEdBlue
+                                                )
+                                                Spacer(modifier = Modifier.width(5.dp))
+                                                Text(
+                                                    text = "Download",
+                                                    style = MaterialTheme.typography.labelSmall,
+                                                    fontWeight = FontWeight.Bold,
+                                                    color = DepEdBlue
+                                                )
+                                            }
+                                        }
+                                    }
+
+                                    if (isDownloaded) {
+                                        Surface(
+                                            onClick = { moduleToDelete = module },
+                                            shape = RoundedCornerShape(10.dp),
+                                            color = MaterialTheme.colorScheme.errorContainer,
+                                            contentColor = MaterialTheme.colorScheme.onErrorContainer,
+                                            border = BorderStroke(
+                                                1.dp,
+                                                MaterialTheme.colorScheme.error.copy(alpha = 0.35f)
+                                            ),
+                                            modifier = Modifier.size(34.dp)
+                                        ) {
+                                            Box(
+                                                modifier = Modifier.fillMaxSize(),
+                                                contentAlignment = Alignment.Center
+                                            ) {
+                                                Icon(
+                                                    imageVector = Icons.Outlined.DeleteOutline,
+                                                    contentDescription = "Delete downloaded module",
+                                                    modifier = Modifier.size(18.dp)
+                                                )
+                                            }
                                         }
                                     }
                                 }
