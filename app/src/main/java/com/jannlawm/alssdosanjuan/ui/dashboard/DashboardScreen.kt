@@ -131,7 +131,7 @@ fun DashboardScreen(
             Spacer(modifier = Modifier.height(12.dp))
 
             // Sub-Level & Language Filter Chips (A&E Elementary)
-            Text(text = "A&E Elementary Program Tracks", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold, color = DepEdBlue)
+            Text(text = "Curriculum Program Tracks", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold, color = DepEdBlue)
             Spacer(modifier = Modifier.height(6.dp))
 
             LazyRow(
@@ -163,6 +163,15 @@ fun DashboardScreen(
                             dashboardViewModel.filterBySubLevel(if (state.selectedSubLevel == "Advanced Elementary") null else "Advanced Elementary")
                         },
                         label = { Text("Advanced Elementary") }
+                    )
+                }
+                item {
+                    FilterChip(
+                        selected = state.selectedSubLevel == "Junior High School",
+                        onClick = {
+                            dashboardViewModel.filterBySubLevel(if (state.selectedSubLevel == "Junior High School") null else "Junior High School")
+                        },
+                        label = { Text("Junior High School") }
                     )
                 }
                 item {
