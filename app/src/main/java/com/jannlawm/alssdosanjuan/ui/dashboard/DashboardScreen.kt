@@ -1,5 +1,6 @@
 ﻿package com.jannlawm.alssdosanjuan.ui.dashboard
 
+import android.widget.Toast
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.clickable
@@ -7,7 +8,9 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Star
@@ -16,6 +19,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -40,9 +44,14 @@ fun DashboardScreen(
     onLogout: () -> Unit
 ) {
     val state by dashboardViewModel.uiState.collectAsState()
+    val context = LocalContext.current
 
     LaunchedEffect(user.id) {
         dashboardViewModel.setUser(user)
+    }
+
+    LaunchedEffect(Unit) {
+        dashboardViewModel.refreshDownloadedState()
     }
 
     Scaffold(
@@ -364,14 +373,104 @@ fun DashboardScreen(
                                         color = MaterialTheme.colorScheme.onSurfaceVariant
                                     )
                                 }
-                                if (module.strand != null) {
-                                    Spacer(modifier = Modifier.height(8.dp))
-                                    Text(
-                                        text = "Strand: ${module.strand.title ?: module.strand.name ?: module.strand.code}",
-                                        style = MaterialTheme.typography.bodySmall,
-                                        color = MaterialTheme.colorScheme.primary,
-                                        fontWeight = FontWeight.Medium
-                                    )
+
+                                Spacer(modifier = Modifier.height(10.dp))
+
+                                // Bottom Row: Strand Info (Left) and Download Button (Right)
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    if (module.strand != null) {
+                                        Text(
+                                            text = "Strand: ${module.strand.title ?: module.strand.name ?: module.strand.code}",
+                                            style = MaterialTheme.typography.bodySmall,
+                                            color = MaterialTheme.colorScheme.primary,
+                                            fontWeight = FontWeight.Medium,
+                                            modifier = Modifier.weight(1f).padding(end = 8.dp)
+                                        )
+                                    } else {
+                                        Spacer(modifier = Modifier.weight(1f))
+                                    }
+
+                                    val isDownloaded = state.downloadedModuleIds.contains(module.id)
+                                    val isDownloading = state.downloadingModuleIds.contains(module.id)
+
+                                    // Download Button with Transition: Gray when not downloaded -> Green when downloaded
+                                    Surface(
+                                        onClick = {
+                                            if (!isDownloaded && !isDownloading) {
+                                                dashboardViewModel.downloadModule(module.id)
+                                            } else if (isDownloaded) {
+                                                Toast.makeText(context, "Modyul ay na-download na para sa offline reading.", Toast.LENGTH_SHORT).show()
+                                            }
+                                        },
+                                        shape = RoundedCornerShape(8.dp),
+                                        color = when {
+                                            isDownloaded -> Color(0xFF16A34A) // Green when downloaded
+                                            isDownloading -> Color(0xFFCBD5E1) // Gray during download
+                                            else -> Color(0xFFE2E8F0) // Gray before download
+                                        },
+                                        contentColor = when {
+                                            isDownloaded -> Color.White
+                                            else -> Color(0xFF475569)
+                                        },
+                                        border = BorderStroke(
+                                            1.dp,
+                                            if (isDownloaded) Color(0xFF15803D) else Color(0xFFCBD5E1)
+                                        ),
+                                        modifier = Modifier.height(34.dp)
+                                    ) {
+                                        Row(
+                                            modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
+                                            verticalAlignment = Alignment.CenterVertically,
+                                            horizontalArrangement = Arrangement.Center
+                                        ) {
+                                            if (isDownloading) {
+                                                CircularProgressIndicator(
+                                                    modifier = Modifier.size(14.dp),
+                                                    strokeWidth = 2.dp,
+                                                    color = DepEdBlue
+                                                )
+                                                Spacer(modifier = Modifier.width(6.dp))
+                                                Text(
+                                                    text = "Downloading",
+                                                    style = MaterialTheme.typography.labelSmall,
+                                                    fontWeight = FontWeight.Bold,
+                                                    color = Color(0xFF475569)
+                                                )
+                                            } else if (isDownloaded) {
+                                                Icon(
+                                                    imageVector = Icons.Default.Check,
+                                                    contentDescription = "Downloaded",
+                                                    modifier = Modifier.size(16.dp),
+                                                    tint = Color.White
+                                                )
+                                                Spacer(modifier = Modifier.width(5.dp))
+                                                Text(
+                                                    text = "Downloaded",
+                                                    style = MaterialTheme.typography.labelSmall,
+                                                    fontWeight = FontWeight.Bold,
+                                                    color = Color.White
+                                                )
+                                            } else {
+                                                Icon(
+                                                    painter = painterResource(id = R.drawable.ic_download),
+                                                    contentDescription = "Download Module",
+                                                    modifier = Modifier.size(16.dp),
+                                                    tint = Color(0xFF475569)
+                                                )
+                                                Spacer(modifier = Modifier.width(5.dp))
+                                                Text(
+                                                    text = "Download",
+                                                    style = MaterialTheme.typography.labelSmall,
+                                                    fontWeight = FontWeight.Bold,
+                                                    color = Color(0xFF475569)
+                                                )
+                                            }
+                                        }
+                                    }
                                 }
                             }
                         }

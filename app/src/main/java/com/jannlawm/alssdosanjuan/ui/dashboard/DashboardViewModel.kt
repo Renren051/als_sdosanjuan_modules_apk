@@ -7,11 +7,13 @@ import com.jannlawm.alssdosanjuan.data.model.ModuleItem
 import com.jannlawm.alssdosanjuan.data.model.Strand
 import com.jannlawm.alssdosanjuan.data.model.User
 import com.jannlawm.alssdosanjuan.data.repository.ModuleRepository
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 data class DashboardUiState(
     val strands: List<Strand> = emptyList(),
@@ -23,7 +25,9 @@ data class DashboardUiState(
     val searchQuery: String = "",
     val isLoading: Boolean = false,
     val errorMessage: String? = null,
-    val user: User? = null
+    val user: User? = null,
+    val downloadedModuleIds: Set<Int> = emptySet(),
+    val downloadingModuleIds: Set<Int> = emptySet()
 )
 
 class DashboardViewModel(application: Application) : AndroidViewModel(application) {
@@ -69,14 +73,59 @@ class DashboardViewModel(application: Application) : AndroidViewModel(applicatio
                 _uiState.value.searchQuery
             )
 
+            val loadedModules = modulesResult.getOrDefault(_uiState.value.modules)
+            val downloadedIds = withContext(Dispatchers.IO) {
+                loadedModules.filter { m ->
+                    moduleRepository.getCachedPdfFile(m.id) != null
+                }.map { it.id }.toSet()
+            }
+
             _uiState.update { state ->
                 state.copy(
                     isLoading = false,
                     strands = strandsResult.getOrDefault(state.strands),
-                    modules = modulesResult.getOrDefault(state.modules),
+                    modules = loadedModules,
+                    downloadedModuleIds = downloadedIds,
                     errorMessage = if (strandsResult.isFailure || modulesResult.isFailure) "Loaded with some offline limitations." else null
                 )
             }
+        }
+    }
+
+    fun downloadModule(moduleId: Int) {
+        if (_uiState.value.downloadingModuleIds.contains(moduleId)) return
+        if (_uiState.value.downloadedModuleIds.contains(moduleId)) return
+
+        viewModelScope.launch {
+            _uiState.update { it.copy(downloadingModuleIds = it.downloadingModuleIds + moduleId) }
+            val result = moduleRepository.downloadModulePdf(moduleId)
+            result.fold(
+                onSuccess = {
+                    _uiState.update {
+                        it.copy(
+                            downloadingModuleIds = it.downloadingModuleIds - moduleId,
+                            downloadedModuleIds = it.downloadedModuleIds + moduleId
+                        )
+                    }
+                },
+                onFailure = { error ->
+                    _uiState.update {
+                        it.copy(
+                            downloadingModuleIds = it.downloadingModuleIds - moduleId,
+                            errorMessage = "Download failed: ${error.localizedMessage}"
+                        )
+                    }
+                }
+            )
+        }
+    }
+
+    fun refreshDownloadedState() {
+        viewModelScope.launch(Dispatchers.IO) {
+            val downloaded = _uiState.value.modules.filter { m ->
+                moduleRepository.getCachedPdfFile(m.id) != null
+            }.map { it.id }.toSet()
+            _uiState.update { it.copy(downloadedModuleIds = downloaded) }
         }
     }
 
