@@ -16,10 +16,12 @@ import com.jannlawm.alssdosanjuan.ui.chat.ChatScreen
 import com.jannlawm.alssdosanjuan.ui.dashboard.DashboardScreen
 import com.jannlawm.alssdosanjuan.ui.login.LoginScreen
 import com.jannlawm.alssdosanjuan.ui.module.ModuleDetailScreen
+import com.jannlawm.alssdosanjuan.ui.splash.SplashScreen
 import com.jannlawm.alssdosanjuan.ui.theme.ALSSDOSanJuanTheme
 import java.util.concurrent.TimeUnit
 
 sealed class Screen {
+    object Splash : Screen()
     object Login : Screen()
     object Dashboard : Screen()
     data class ModuleDetail(val module: ModuleItem) : Screen()
@@ -47,7 +49,7 @@ class MainActivity : ComponentActivity() {
                 val hasToken = remember { !tokenManager.getToken().isNullOrEmpty() }
 
                 var currentScreen by remember {
-                    mutableStateOf<Screen>(if (hasToken) Screen.Dashboard else Screen.Login)
+                    mutableStateOf<Screen>(Screen.Splash)
                 }
                 var currentUser by remember {
                     mutableStateOf<User?>(
@@ -58,6 +60,13 @@ class MainActivity : ComponentActivity() {
                 }
 
                 when (val screen = currentScreen) {
+                    is Screen.Splash -> {
+                        SplashScreen(
+                            onSplashFinished = {
+                                currentScreen = if (hasToken && currentUser != null) Screen.Dashboard else Screen.Login
+                            }
+                        )
+                    }
                     is Screen.Login -> {
                         LoginScreen(
                             onLoginSuccess = { user ->
