@@ -1,8 +1,9 @@
 # DepEd SDO San Juan Alternative Learning System (ALS) — Android Modular LMS
 ### Native Offline-First Mobile Learning Management System for Learners
 
+[![Version](https://img.shields.io/badge/Version-v2.0-blue?style=flat)](https://github.com/Renren051/als_sdosanjuan_modules_apk)
 [![Kotlin](https://img.shields.io/badge/Kotlin-2.0.21-7F52FF?style=flat&logo=kotlin&logoColor=white)](https://kotlinlang.org/)
-[![Jetpack Compose](https://img.shields.io/badge/Jetpack%20Compose-BOM%202024.09.00-4285F4?style=flat&logo=android&logoColor=white)](https://developer.android.com/jetpack/compose)
+[![Jetpack Compose](https://img.shields.io/badge/Jetpack%20Compose-BOM%202024.10.01-4285F4?style=flat&logo=android&logoColor=white)](https://developer.android.com/jetpack/compose)
 [![Material 3](https://img.shields.io/badge/Material%203-Latest-0038A8?style=flat)](https://m3.material.io/)
 [![Room Database](https://img.shields.io/badge/Room-SQLite%20Offline-3DDC84?style=flat&logo=sqlite&logoColor=white)](https://developer.android.com/training/data-storage/room)
 [![Retrofit 2](https://img.shields.io/badge/Retrofit-2.11.0-orange?style=flat)](https://square.github.io/retrofit/)
@@ -12,7 +13,7 @@
 
 ## 📌 Application Overview
 
-The **DepEd SDO San Juan Alternative Learning System (ALS) Mobile LMS** is a native Android application engineered specifically for Out-of-School Youth and Adults (OSYA). Designed under **Republic Act No. 11510**, it enables self-paced learning across San Juan City with **robust offline-first capabilities**.
+The **DepEd SDO San Juan Alternative Learning System (ALS) Mobile LMS (v2.0)** is a native Android application engineered specifically for Out-of-School Youth and Adults (OSYA). Designed under **Republic Act No. 11510**, it enables self-paced learning across San Juan City with **robust offline-first capabilities**.
 
 Built using modern **Android Jetpack Compose**, **MVVM Clean Architecture**, and **Material 3 Design**, the mobile application connects to the centralized **Laravel 12 Backend API**, sharing the exact same central database as the Web Student Information System (SIS).
 
@@ -24,24 +25,28 @@ The Android Mobile App and the Web SIS / LMS do **not** have separate databases.
 
 ```mermaid
 graph LR
-    subgraph Web_Portal ["Web SIS / Admin Portal"]
-        Web_Admin["Admin & Teachers\n(Module Authoring, Intake)"]
+    subgraph Web_Portal [Web SIS / Admin Portal]
+        Web_Admin["Admin & Teachers
+(Module Authoring, Intake)"]
     end
 
-    subgraph Central_DB ["Shared MySQL Database (als_sdosanjuan_db)"]
+    subgraph Central_DB [Shared MySQL Database: als_sdosanjuan_db]
         Users[("users & user_profiles")]
         Modules[("learning_strands & modules")]
         Progress[("module_progress & enrollments")]
     end
 
-    subgraph Mobile_App ["Android Mobile LMS (Learner)"]
-        Android_UI["Jetpack Compose UI\n(Dashboard, Reader, ALSJay)"]
-        Local_Room[("Local Room / SQLite Cache\n(Downloaded PDFs & Telemetry)")]
-        Sync_Worker["WorkManager SyncWorker\n(Background Progress Sync)"]
+    subgraph Mobile_App [Android Mobile LMS v2.0]
+        Android_UI["Jetpack Compose UI
+(Dashboard, Reader, ALSJay)"]
+        Local_Room[("Local Room / SQLite Cache
+(Downloaded PDFs & Telemetry)")]
+        Sync_Worker["WorkManager SyncWorker
+(Background Progress Sync)"]
     end
 
     Web_Admin <-->|Laravel 12 Backend| Central_DB
-    Mobile_App <-->|Retrofit REST API (/api/v1/*)| Central_DB
+    Mobile_App <-->|Retrofit REST API /api/v1/*| Central_DB
     Android_UI <--> Local_Room
     Local_Room --> Sync_Worker
     Sync_Worker -->|Push Progress when Online| Central_DB
@@ -56,7 +61,7 @@ graph LR
 
 ---
 
-## 🚀 Key Features & Highlights
+## 🚀 Key Features & Highlights (v2.0)
 
 ### 1. Animated Frosted-Glass Login Screen
 - **Tri-Image Cinematic Transitions:** Smooth, continuous looping background featuring 3 high-resolution educational photographs (`forbg.jpg`, `forbg1.jpg`, `forbg3.jpg`).
@@ -92,7 +97,7 @@ graph LR
 - **Java Development Kit (JDK):** JDK 17 (recommended for Gradle 8+)
 - **Android SDK:**
   - Minimum SDK: **API 24** (Android 7.0 Nougat)
-  - Target / Compile SDK: **API 34 / 35**
+  - Target / Compile SDK: **API 37**
 - **Laravel Backend:** Running locally or hosted on your network (see network setup below).
 
 ---
@@ -144,10 +149,10 @@ object Constants {
 
 ## 📦 How to Build & Generate the APK
 
-### Method 1: Ready-to-Install Prebuilt APK
+### Method 1: Ready-to-Install Prebuilt APK (v2.0)
 A standalone, fully compiled release APK is pre-generated in the repository root:
 ```
-ALSSDOSanJuan_v1.0.apk
+ALSSDOSanJuan_v2.0.apk
 ```
 You can transfer this APK directly to your Android device via USB, Google Drive, or Bluetooth and tap to install.
 
@@ -182,7 +187,7 @@ app/build/outputs/apk/debug/app-debug.apk
 ### Option A: Install via ADB (USB Debugging)
 Connect your physical phone via USB with **USB Debugging** enabled, then run:
 ```powershell
-adb install -r app/build/outputs/apk/debug/app-debug.apk
+adb install -r ALSSDOSanJuan_v2.0.apk
 ```
 
 ### Option B: Run Directly from Android Studio
