@@ -1,17 +1,18 @@
-package com.jannlawm.alssdosanjuan.data.repository
+﻿package com.jannlawm.alssdosanjuan.data.repository
 
 import android.content.Context
+import com.jannlawm.alssdosanjuan.data.local.AppDbHelper
 import com.jannlawm.alssdosanjuan.data.local.TokenManager
 import com.jannlawm.alssdosanjuan.data.model.LoginRequest
-import com.jannlawm.alssdosanjuan.data.model.LoginResponse
 import com.jannlawm.alssdosanjuan.data.model.User
 import com.jannlawm.alssdosanjuan.data.remote.ApiClient
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
-class AuthRepository(context: Context) {
+class AuthRepository(private val context: Context) {
     private val apiService = ApiClient.getApiService(context)
     private val tokenManager = TokenManager(context)
+    private val dbHelper = AppDbHelper(context)
 
     suspend fun login(loginId: String, password: String): Result<User> {
         return withContext(Dispatchers.IO) {
@@ -23,6 +24,7 @@ class AuthRepository(context: Context) {
                     if (body.success) {
                         tokenManager.saveToken(body.data.token)
                         tokenManager.saveUserRole(body.data.user.role)
+                        tokenManager.saveUser(body.data.user)
                         Result.success(body.data.user)
                     } else {
                         Result.failure(Exception("Login failed"))
@@ -41,7 +43,9 @@ class AuthRepository(context: Context) {
             try {
                 val response = apiService.getMe()
                 if (response.isSuccessful && response.body() != null) {
-                    Result.success(response.body()!!.data)
+                    val user = response.body()!!.data
+                    tokenManager.saveUser(user)
+                    Result.success(user)
                 } else {
                     Result.failure(Exception("Failed to fetch profile"))
                 }
@@ -52,6 +56,7 @@ class AuthRepository(context: Context) {
     }
 
     fun logout() {
+        dbHelper.clearModules()
         tokenManager.clear()
     }
 }

@@ -1,5 +1,6 @@
 ﻿package com.jannlawm.alssdosanjuan.ui.dashboard
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -40,6 +41,10 @@ fun DashboardScreen(
 ) {
     val state by dashboardViewModel.uiState.collectAsState()
 
+    LaunchedEffect(user.id) {
+        dashboardViewModel.setUser(user)
+    }
+
     Scaffold(
         topBar = {
             TopAppBar(
@@ -52,8 +57,18 @@ fun DashboardScreen(
                         )
                         Spacer(modifier = Modifier.width(10.dp))
                         Column {
-                            Text(text = "DepEd SDO San Juan ALS", style = MaterialTheme.typography.titleSmall, color = Color.White, fontWeight = FontWeight.Bold)
-                            Text(text = "${user.full_name} (${user.role.replaceFirstChar { it.uppercase() }})", style = MaterialTheme.typography.bodySmall, color = DepEdYellow)
+                            Text(
+                                text = "DepEd SDO San Juan ALS",
+                                style = MaterialTheme.typography.titleSmall,
+                                color = Color.White,
+                                fontWeight = FontWeight.Bold
+                            )
+                            Text(
+                                text = "${user.full_name} • ${user.trackLabel}",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = DepEdYellow,
+                                maxLines = 1
+                            )
                         }
                     }
                 },
@@ -92,6 +107,48 @@ fun DashboardScreen(
                 .padding(paddingValues)
                 .padding(16.dp)
         ) {
+            // Enrolled Program Track Banner
+            Surface(
+                color = DepEdBlue.copy(alpha = 0.08f),
+                shape = MaterialTheme.shapes.medium,
+                border = BorderStroke(1.dp, DepEdBlue.copy(alpha = 0.25f)),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Row(
+                    modifier = Modifier.padding(horizontal = 14.dp, vertical = 10.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(
+                            text = "ENROLLED PROGRAM TRACK",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = DepEdBlue,
+                            fontWeight = FontWeight.Bold
+                        )
+                        Text(
+                            text = user.trackLabel,
+                            style = MaterialTheme.typography.titleSmall,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
+                    Surface(
+                        color = DepEdBlue,
+                        shape = MaterialTheme.shapes.small
+                    ) {
+                        Text(
+                            text = "${state.modules.size} Modules",
+                            modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
+                            style = MaterialTheme.typography.labelMedium,
+                            color = Color.White,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
+                }
+            }
+
+            Spacer(modifier = Modifier.height(12.dp))
+
             // Search Bar
             OutlinedTextField(
                 value = state.searchQuery,
@@ -130,8 +187,13 @@ fun DashboardScreen(
 
             Spacer(modifier = Modifier.height(12.dp))
 
-            // Sub-Level & Language Filter Chips (A&E Elementary)
-            Text(text = "Curriculum Program Tracks", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold, color = DepEdBlue)
+            // Sub-Level & Language Filter Chips Scoped to Enrolled Track
+            Text(
+                text = if (user.isLearner) "Program Sub-Levels" else "Curriculum Program Tracks",
+                style = MaterialTheme.typography.titleSmall,
+                fontWeight = FontWeight.Bold,
+                color = DepEdBlue
+            )
             Spacer(modifier = Modifier.height(6.dp))
 
             LazyRow(
@@ -144,45 +206,55 @@ fun DashboardScreen(
                             dashboardViewModel.filterBySubLevel(null)
                             dashboardViewModel.filterByLanguage(null)
                         },
-                        label = { Text("All Tracks") }
+                        label = { Text("All Track Modules") }
                     )
                 }
-                item {
-                    FilterChip(
-                        selected = state.selectedSubLevel == "Basic Literacy",
-                        onClick = {
-                            dashboardViewModel.filterBySubLevel(if (state.selectedSubLevel == "Basic Literacy") null else "Basic Literacy")
-                        },
-                        label = { Text("Basic Literacy") }
-                    )
+
+                if (!user.isLearner || user.isBlp) {
+                    item {
+                        FilterChip(
+                            selected = state.selectedSubLevel == "Basic Literacy",
+                            onClick = {
+                                dashboardViewModel.filterBySubLevel(if (state.selectedSubLevel == "Basic Literacy") null else "Basic Literacy")
+                            },
+                            label = { Text("Basic Literacy") }
+                        )
+                    }
                 }
-                item {
-                    FilterChip(
-                        selected = state.selectedSubLevel == "Lower Elementary",
-                        onClick = {
-                            dashboardViewModel.filterBySubLevel(if (state.selectedSubLevel == "Lower Elementary") null else "Lower Elementary")
-                        },
-                        label = { Text("Lower Elementary") }
-                    )
+
+                if (!user.isLearner || user.isElementary) {
+                    item {
+                        FilterChip(
+                            selected = state.selectedSubLevel == "Lower Elementary",
+                            onClick = {
+                                dashboardViewModel.filterBySubLevel(if (state.selectedSubLevel == "Lower Elementary") null else "Lower Elementary")
+                            },
+                            label = { Text("Lower Elementary") }
+                        )
+                    }
+                    item {
+                        FilterChip(
+                            selected = state.selectedSubLevel == "Advanced Elementary",
+                            onClick = {
+                                dashboardViewModel.filterBySubLevel(if (state.selectedSubLevel == "Advanced Elementary") null else "Advanced Elementary")
+                            },
+                            label = { Text("Advanced Elementary") }
+                        )
+                    }
                 }
-                item {
-                    FilterChip(
-                        selected = state.selectedSubLevel == "Advanced Elementary",
-                        onClick = {
-                            dashboardViewModel.filterBySubLevel(if (state.selectedSubLevel == "Advanced Elementary") null else "Advanced Elementary")
-                        },
-                        label = { Text("Advanced Elementary") }
-                    )
+
+                if (!user.isLearner || user.isJuniorHigh) {
+                    item {
+                        FilterChip(
+                            selected = state.selectedSubLevel == "Junior High School",
+                            onClick = {
+                                dashboardViewModel.filterBySubLevel(if (state.selectedSubLevel == "Junior High School") null else "Junior High School")
+                            },
+                            label = { Text("Junior High School") }
+                        )
+                    }
                 }
-                item {
-                    FilterChip(
-                        selected = state.selectedSubLevel == "Junior High School",
-                        onClick = {
-                            dashboardViewModel.filterBySubLevel(if (state.selectedSubLevel == "Junior High School") null else "Junior High School")
-                        },
-                        label = { Text("Junior High School") }
-                    )
-                }
+
                 item {
                     FilterChip(
                         selected = state.selectedLanguage == "English",
@@ -205,7 +277,12 @@ fun DashboardScreen(
 
             Spacer(modifier = Modifier.height(14.dp))
 
-            Text(text = "Self-Learning Modules (${state.modules.size})", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, color = DepEdBlue)
+            Text(
+                text = "Self-Learning Modules (${state.modules.size})",
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold,
+                color = DepEdBlue
+            )
             Spacer(modifier = Modifier.height(8.dp))
 
             if (state.isLoading) {
@@ -214,7 +291,7 @@ fun DashboardScreen(
                 }
             } else if (state.modules.isEmpty()) {
                 Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    Text("No modules found.", style = MaterialTheme.typography.bodyLarge, color = Color.Gray)
+                    Text("No modules found for this filter.", style = MaterialTheme.typography.bodyLarge, color = Color.Gray)
                 }
             } else {
                 LazyColumn(
@@ -280,11 +357,21 @@ fun DashboardScreen(
                                 Text(text = module.title, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
                                 if (!module.description.isNullOrEmpty()) {
                                     Spacer(modifier = Modifier.height(4.dp))
-                                    Text(text = module.description, style = MaterialTheme.typography.bodyMedium, maxLines = 2, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                    Text(
+                                        text = module.description,
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        maxLines = 2,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
                                 }
                                 if (module.strand != null) {
                                     Spacer(modifier = Modifier.height(8.dp))
-                                    Text(text = "Strand: ${module.strand.title ?: module.strand.name ?: module.strand.code}", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.Medium)
+                                    Text(
+                                        text = "Strand: ${module.strand.title ?: module.strand.name ?: module.strand.code}",
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = MaterialTheme.colorScheme.primary,
+                                        fontWeight = FontWeight.Medium
+                                    )
                                 }
                             }
                         }

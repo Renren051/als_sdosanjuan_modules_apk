@@ -1,4 +1,4 @@
-package com.jannlawm.alssdosanjuan.data.local
+﻿package com.jannlawm.alssdosanjuan.data.local
 
 import android.content.ContentValues
 import android.content.Context
@@ -36,6 +36,11 @@ class AppDbHelper(context: Context) : SQLiteOpenHelper(context, "als_lms.db", nu
         db.execSQL("DROP TABLE IF EXISTS cached_modules")
         db.execSQL("DROP TABLE IF EXISTS telemetry_logs")
         onCreate(db)
+    }
+
+    fun clearModules() {
+        val db = writableDatabase
+        db.execSQL("DELETE FROM cached_modules")
     }
 
     fun insertModules(modules: List<CachedModuleEntity>) {

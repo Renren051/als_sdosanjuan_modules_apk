@@ -5,6 +5,7 @@ import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.jannlawm.alssdosanjuan.data.model.ModuleItem
 import com.jannlawm.alssdosanjuan.data.model.Strand
+import com.jannlawm.alssdosanjuan.data.model.User
 import com.jannlawm.alssdosanjuan.data.repository.ModuleRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -21,7 +22,8 @@ data class DashboardUiState(
     val selectedLanguage: String? = null,
     val searchQuery: String = "",
     val isLoading: Boolean = false,
-    val errorMessage: String? = null
+    val errorMessage: String? = null,
+    val user: User? = null
 )
 
 class DashboardViewModel(application: Application) : AndroidViewModel(application) {
@@ -32,6 +34,27 @@ class DashboardViewModel(application: Application) : AndroidViewModel(applicatio
 
     init {
         loadStrandsAndModules()
+    }
+
+    fun setUser(user: User) {
+        val currentUserId = _uiState.value.user?.id
+        if (currentUserId != user.id) {
+            val enrolledLevel = when (user.latest_enrollment?.program_track) {
+                "BLP" -> "BLP"
+                "A&E_Elementary" -> "Elementary"
+                "A&E_Junior_High" -> "Junior_High"
+                else -> null
+            }
+            _uiState.update {
+                it.copy(
+                    user = user,
+                    selectedLevel = enrolledLevel,
+                    selectedSubLevel = null,
+                    selectedStrandId = null
+                )
+            }
+            loadStrandsAndModules()
+        }
     }
 
     fun loadStrandsAndModules() {
@@ -63,6 +86,11 @@ class DashboardViewModel(application: Application) : AndroidViewModel(applicatio
     }
 
     fun filterByLevel(level: String?) {
+        val user = _uiState.value.user
+        if (user != null && user.isLearner) {
+            // Strictly locked to enrolled program track
+            return
+        }
         _uiState.update { it.copy(selectedLevel = level) }
         loadStrandsAndModules()
     }

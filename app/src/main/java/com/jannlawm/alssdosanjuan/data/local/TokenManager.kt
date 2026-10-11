@@ -1,8 +1,10 @@
-package com.jannlawm.alssdosanjuan.data.local
+﻿package com.jannlawm.alssdosanjuan.data.local
 
 import android.content.Context
 import androidx.security.crypto.EncryptedSharedPreferences
 import androidx.security.crypto.MasterKey
+import com.google.gson.Gson
+import com.jannlawm.alssdosanjuan.data.model.User
 
 class TokenManager(context: Context) {
     private val masterKey = MasterKey.Builder(context)
@@ -17,12 +19,30 @@ class TokenManager(context: Context) {
         EncryptedSharedPreferences.PrefValueEncryptionScheme.AES256_GCM
     )
 
+    private val gson = Gson()
+
     fun saveToken(token: String) {
         sharedPreferences.edit().putString("auth_token", token).apply()
     }
 
     fun getToken(): String? {
         return sharedPreferences.getString("auth_token", null)
+    }
+
+    fun saveUser(user: User) {
+        sharedPreferences.edit()
+            .putString("user_role", user.role)
+            .putString("user_json", gson.toJson(user))
+            .apply()
+    }
+
+    fun getUser(): User? {
+        val json = sharedPreferences.getString("user_json", null) ?: return null
+        return try {
+            gson.fromJson(json, User::class.java)
+        } catch (e: Exception) {
+            null
+        }
     }
 
     fun saveUserRole(role: String) {
