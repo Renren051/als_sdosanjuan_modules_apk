@@ -17,6 +17,11 @@ class ModuleRepository(context: Context) {
     private val dbHelper = AppDbHelper(context)
     private val appContext = context.applicationContext
 
+    fun getCachedPdfFile(moduleId: Int): File? {
+        val file = File(appContext.filesDir, "module_$moduleId.pdf")
+        return if (file.exists() && file.length() > 0) file else null
+    }
+
     suspend fun fetchStrands(): Result<List<Strand>> {
         return withContext(Dispatchers.IO) {
             try {
