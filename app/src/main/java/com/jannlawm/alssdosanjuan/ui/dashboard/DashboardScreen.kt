@@ -1,29 +1,38 @@
-﻿package com.jannlawm.alssdosanjuan.ui.dashboard
+package com.jannlawm.alssdosanjuan.ui.dashboard
 
-import android.widget.Toast
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.Clear
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Star
+import androidx.compose.material.icons.outlined.Book
+import androidx.compose.material.icons.outlined.CloudDownload
+import androidx.compose.material.icons.outlined.SearchOff
 import androidx.compose.material3.*
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.jannlawm.alssdosanjuan.R
 import com.jannlawm.alssdosanjuan.data.model.ModuleItem
@@ -59,46 +68,92 @@ fun DashboardScreen(
         topBar = {
             TopAppBar(
                 title = {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Image(
-                            painter = painterResource(id = R.drawable.sdo_als_logo),
-                            contentDescription = "SDO ALS Logo",
-                            modifier = Modifier.size(38.dp)
-                        )
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .size(40.dp)
+                                .clip(CircleShape)
+                                .background(Color.White.copy(alpha = 0.15f))
+                                .padding(2.dp),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Image(
+                                painter = painterResource(id = R.drawable.sdo_als_logo),
+                                contentDescription = "SDO ALS Logo",
+                                modifier = Modifier.size(36.dp)
+                            )
+                        }
                         Spacer(modifier = Modifier.width(10.dp))
-                        Column {
+                        Column(modifier = Modifier.weight(1f)) {
                             Text(
-                                text = "DepEd SDO San Juan ALS",
+                                text = "DepEd SDO San Juan",
                                 style = MaterialTheme.typography.titleSmall,
                                 color = Color.White,
-                                fontWeight = FontWeight.Bold
-                            )
-                            Text(
-                                text = "${user.full_name} • ${user.trackLabel}",
-                                style = MaterialTheme.typography.bodySmall,
-                                color = DepEdYellow,
+                                fontWeight = FontWeight.Bold,
                                 maxLines = 1
                             )
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Text(
+                                    text = user.full_name,
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = Color.White.copy(alpha = 0.90f),
+                                    fontWeight = FontWeight.Medium,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis
+                                )
+                                Text(
+                                    text = " \u2022 ",
+                                    color = DepEdYellow,
+                                    fontWeight = FontWeight.Bold,
+                                    fontSize = 12.sp
+                                )
+                                Text(
+                                    text = user.trackLabel,
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = DepEdYellow,
+                                    fontWeight = FontWeight.Bold,
+                                    maxLines = 1
+                                )
+                            }
                         }
                     }
                 },
-                colors = TopAppBarDefaults.topAppBarColors(containerColor = DepEdBlue),
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = DepEdBlue
+                ),
                 actions = {
-                    // Dark / Light Mode Toggle with Sun & Moon Icons
+                    // Theme Toggle Button
                     IconButton(onClick = { onToggleDarkMode(!isDarkMode) }) {
                         Icon(
                             painter = painterResource(
                                 id = if (isDarkMode) R.drawable.ic_light_mode else R.drawable.ic_dark_mode
                             ),
-                            contentDescription = if (isDarkMode) "Switch to Light Mode" else "Switch to Dark Mode",
+                            contentDescription = if (isDarkMode) "Light Mode" else "Dark Mode",
                             tint = if (isDarkMode) DepEdYellow else Color.White
                         )
                     }
-                    IconButton(onClick = onOpenChat) {
-                        Icon(Icons.Default.Star, contentDescription = "ALSJay Chat", tint = DepEdYellow)
-                    }
-                    TextButton(onClick = onLogout) {
-                        Text("Logout", color = Color.White, fontWeight = FontWeight.SemiBold)
+
+                    // Logout Button
+                    OutlinedButton(
+                        onClick = onLogout,
+                        modifier = Modifier
+                            .padding(end = 8.dp)
+                            .height(34.dp),
+                        contentPadding = PaddingValues(horizontal = 10.dp, vertical = 4.dp),
+                        shape = RoundedCornerShape(12.dp),
+                        border = BorderStroke(1.dp, Color.White.copy(alpha = 0.35f)),
+                        colors = ButtonDefaults.outlinedButtonColors(
+                            contentColor = Color.White
+                        )
+                    ) {
+                        Text(
+                            text = "Logout",
+                            style = MaterialTheme.typography.labelMedium,
+                            fontWeight = FontWeight.Bold
+                        )
                     }
                 }
             )
@@ -108,444 +163,690 @@ fun DashboardScreen(
                 onClick = onOpenChat,
                 containerColor = DepEdRed,
                 contentColor = Color.White,
-                icon = { Icon(Icons.Default.Star, contentDescription = null) },
-                text = { Text("Ask ALSJay AI", fontWeight = FontWeight.Bold) }
+                shape = RoundedCornerShape(99.dp),
+                elevation = FloatingActionButtonDefaults.elevation(defaultElevation = 8.dp),
+                icon = {
+                    Icon(
+                        imageVector = Icons.Default.Star,
+                        contentDescription = "ALSJay AI",
+                        tint = DepEdYellow,
+                        modifier = Modifier.size(20.dp)
+                    )
+                },
+                text = {
+                    Text(
+                        text = "Ask ALSJay AI",
+                        fontWeight = FontWeight.ExtraBold,
+                        letterSpacing = 0.3.sp
+                    )
+                }
             )
         }
     ) { paddingValues ->
-        Column(
+        PullToRefreshBox(
+            isRefreshing = state.isRefreshing,
+            onRefresh = { dashboardViewModel.refresh() },
             modifier = Modifier
                 .fillMaxSize()
                 .padding(paddingValues)
-                .padding(horizontal = 16.dp, vertical = 12.dp)
         ) {
-            // Offline Mode Notice Banner
-            if (state.isOffline) {
-                Surface(
-                    color = Color(0xFFFEF3C7),
-                    shape = MaterialTheme.shapes.medium,
-                    border = BorderStroke(1.dp, Color(0xFFF59E0B)),
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(bottom = 10.dp)
-                ) {
-                    Row(
-                        modifier = Modifier.padding(12.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Icon(Icons.Default.Info, contentDescription = null, tint = Color(0xFFD97706))
-                        Spacer(modifier = Modifier.width(10.dp))
-                        Column(modifier = Modifier.weight(1f)) {
-                            Text(
-                                text = "Offline Mode Active",
-                                fontWeight = FontWeight.Bold,
-                                color = Color(0xFF92400E),
-                                style = MaterialTheme.typography.labelLarge
-                            )
-                            Text(
-                                text = "Showing local cache. You have ${state.downloadedModuleIds.size} modules downloaded for offline study.",
-                                color = Color(0xFFB45309),
-                                style = MaterialTheme.typography.bodySmall
-                            )
+            LazyColumn(
+                modifier = Modifier.fillMaxSize(),
+                contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 12.dp, bottom = 88.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                // Offline Notice Banner
+                if (state.isOffline) {
+                    item {
+                        Surface(
+                            color = Color(0xFFFEF3C7),
+                            shape = RoundedCornerShape(16.dp),
+                            border = BorderStroke(1.dp, Color(0xFFF59E0B)),
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Row(
+                                modifier = Modifier.padding(14.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.Info,
+                                    contentDescription = null,
+                                    tint = Color(0xFFD97706),
+                                    modifier = Modifier.size(24.dp)
+                                )
+                                Spacer(modifier = Modifier.width(12.dp))
+                                Column(modifier = Modifier.weight(1f)) {
+                                    Text(
+                                        text = "Offline Mode Active",
+                                        fontWeight = FontWeight.Bold,
+                                        color = Color(0xFF92400E),
+                                        style = MaterialTheme.typography.labelLarge
+                                    )
+                                    Text(
+                                        text = "Showing offline cache. You have ${state.downloadedModuleIds.size} downloaded modules available to read.",
+                                        color = Color(0xFFB45309),
+                                        style = MaterialTheme.typography.bodySmall
+                                    )
+                                }
+                            }
                         }
                     }
                 }
-            }
 
-            // Enrolled Program Track Banner
-            Surface(
-                color = DepEdBlue.copy(alpha = 0.08f),
-                shape = MaterialTheme.shapes.medium,
-                border = BorderStroke(1.dp, DepEdBlue.copy(alpha = 0.25f)),
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Row(
-                    modifier = Modifier.padding(horizontal = 14.dp, vertical = 10.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.SpaceBetween
-                ) {
-                    Column(modifier = Modifier.weight(1f)) {
-                        Text(
-                            text = "ENROLLED PROGRAM TRACK",
-                            style = MaterialTheme.typography.labelSmall,
-                            color = DepEdBlue,
-                            fontWeight = FontWeight.Bold
-                        )
-                        Text(
-                            text = user.trackLabel,
-                            style = MaterialTheme.typography.titleSmall,
-                            fontWeight = FontWeight.Bold
-                        )
-                    }
-                    Surface(
-                        color = DepEdBlue,
-                        shape = MaterialTheme.shapes.small
+                // Enrolled Program Track Hero Banner
+                item {
+                    Card(
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(20.dp),
+                        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
+                        colors = CardDefaults.cardColors(containerColor = Color.Transparent)
                     ) {
-                        Text(
-                            text = "${state.modules.size} Modules",
-                            modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
-                            style = MaterialTheme.typography.labelMedium,
-                            color = Color.White,
-                            fontWeight = FontWeight.Bold
-                        )
-                    }
-                }
-            }
-
-            Spacer(modifier = Modifier.height(10.dp))
-
-            // Search Bar
-            OutlinedTextField(
-                value = state.searchQuery,
-                onValueChange = { dashboardViewModel.updateSearchQuery(it) },
-                label = { Text("Search modules by title...") },
-                modifier = Modifier.fillMaxWidth(),
-                leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
-                singleLine = true,
-                shape = MaterialTheme.shapes.medium
-            )
-
-            Spacer(modifier = Modifier.height(12.dp))
-
-            Text(text = "Learning Strands", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold, color = DepEdBlue)
-            Spacer(modifier = Modifier.height(6.dp))
-
-            // Strands Horizontal List
-            LazyRow(
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                item {
-                    FilterChip(
-                        selected = state.selectedStrandId == null,
-                        onClick = { dashboardViewModel.filterByStrand(null) },
-                        label = { Text("All Strands") }
-                    )
-                }
-                items(state.strands) { strand ->
-                    FilterChip(
-                        selected = state.selectedStrandId == strand.id,
-                        onClick = { dashboardViewModel.filterByStrand(strand.id) },
-                        label = { Text("${strand.code} (${strand.modules_count})") }
-                    )
-                }
-            }
-
-            Spacer(modifier = Modifier.height(10.dp))
-
-            // Sub-Level & Language Filter Chips Scoped to Enrolled Track
-            Text(
-                text = if (user.isLearner) "Program Sub-Levels" else "Curriculum Program Tracks",
-                style = MaterialTheme.typography.titleSmall,
-                fontWeight = FontWeight.Bold,
-                color = DepEdBlue
-            )
-            Spacer(modifier = Modifier.height(6.dp))
-
-            LazyRow(
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                // Filter: Downloaded Only Pill
-                item {
-                    FilterChip(
-                        selected = state.filterDownloadedOnly,
-                        onClick = { dashboardViewModel.toggleFilterDownloadedOnly() },
-                        label = {
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                Icon(
-                                    imageVector = Icons.Default.Check,
-                                    contentDescription = null,
-                                    modifier = Modifier.size(14.dp),
-                                    tint = if (state.filterDownloadedOnly) Color.White else Color(0xFF16A34A)
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .background(
+                                    Brush.horizontalGradient(
+                                        colors = listOf(
+                                            Color(0xFF002B80),
+                                            Color(0xFF0E46B5)
+                                        )
+                                    )
                                 )
-                                Spacer(modifier = Modifier.width(4.dp))
-                                Text("Downloaded (${state.downloadedModuleIds.size})")
-                            }
-                        },
-                        colors = FilterChipDefaults.filterChipColors(
-                            selectedContainerColor = Color(0xFF16A34A),
-                            selectedLabelColor = Color.White
-                        )
-                    )
-                }
-
-                item {
-                    FilterChip(
-                        selected = state.selectedSubLevel == null && state.selectedLanguage == null && !state.filterDownloadedOnly,
-                        onClick = {
-                            if (state.filterDownloadedOnly) {
-                                dashboardViewModel.toggleFilterDownloadedOnly()
-                            }
-                            dashboardViewModel.filterBySubLevel(null)
-                            dashboardViewModel.filterByLanguage(null)
-                        },
-                        label = { Text("All Track Modules") }
-                    )
-                }
-
-                if (!user.isLearner || user.isBlp) {
-                    item {
-                        FilterChip(
-                            selected = state.selectedSubLevel == "Basic Literacy",
-                            onClick = {
-                                dashboardViewModel.filterBySubLevel(if (state.selectedSubLevel == "Basic Literacy") null else "Basic Literacy")
-                            },
-                            label = { Text("Basic Literacy") }
-                        )
-                    }
-                }
-
-                if (!user.isLearner || user.isElementary) {
-                    item {
-                        FilterChip(
-                            selected = state.selectedSubLevel == "Lower Elementary",
-                            onClick = {
-                                dashboardViewModel.filterBySubLevel(if (state.selectedSubLevel == "Lower Elementary") null else "Lower Elementary")
-                            },
-                            label = { Text("Lower Elementary") }
-                        )
-                    }
-                    item {
-                        FilterChip(
-                            selected = state.selectedSubLevel == "Advanced Elementary",
-                            onClick = {
-                                dashboardViewModel.filterBySubLevel(if (state.selectedSubLevel == "Advanced Elementary") null else "Advanced Elementary")
-                            },
-                            label = { Text("Advanced Elementary") }
-                        )
-                    }
-                }
-
-                if (!user.isLearner || user.isJuniorHigh) {
-                    item {
-                        FilterChip(
-                            selected = state.selectedSubLevel == "Junior High School",
-                            onClick = {
-                                dashboardViewModel.filterBySubLevel(if (state.selectedSubLevel == "Junior High School") null else "Junior High School")
-                            },
-                            label = { Text("Junior High School") }
-                        )
-                    }
-                }
-
-                item {
-                    FilterChip(
-                        selected = state.selectedLanguage == "English",
-                        onClick = {
-                            dashboardViewModel.filterByLanguage(if (state.selectedLanguage == "English") null else "English")
-                        },
-                        label = { Text("English") }
-                    )
-                }
-                item {
-                    FilterChip(
-                        selected = state.selectedLanguage == "Filipino",
-                        onClick = {
-                            dashboardViewModel.filterByLanguage(if (state.selectedLanguage == "Filipino") null else "Filipino")
-                        },
-                        label = { Text("Filipino") }
-                    )
-                }
-            }
-
-            Spacer(modifier = Modifier.height(12.dp))
-
-            Text(
-                text = if (state.filterDownloadedOnly) "Downloaded Offline Modules (${state.modules.size})" else "Self-Learning Modules (${state.modules.size})",
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.Bold,
-                color = DepEdBlue
-            )
-            Spacer(modifier = Modifier.height(6.dp))
-
-            // PullToRefreshBox: Slide/Pull Down to Reload
-            PullToRefreshBox(
-                isRefreshing = state.isRefreshing,
-                onRefresh = { dashboardViewModel.refresh() },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .weight(1f)
-            ) {
-                if (state.isLoading) {
-                    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                        CircularProgressIndicator(color = DepEdBlue)
-                    }
-                } else if (state.modules.isEmpty()) {
-                    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                        Text(
-                            text = if (state.filterDownloadedOnly) "No downloaded modules found yet.\nTap 'Download' on any module to make it available offline." else "No modules found.",
-                            style = MaterialTheme.typography.bodyLarge,
-                            color = Color.Gray,
-                            textAlign = androidx.compose.ui.text.style.TextAlign.Center
-                        )
-                    }
-                } else {
-                    LazyColumn(
-                        verticalArrangement = Arrangement.spacedBy(10.dp),
-                        modifier = Modifier.fillMaxSize()
-                    ) {
-                        items(state.modules) { module ->
-                            Card(
+                        ) {
+                            Column(
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .clickable { onModuleClick(module) },
-                                elevation = CardDefaults.cardElevation(defaultElevation = 3.dp),
-                                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
+                                    .padding(16.dp)
                             ) {
-                                Column(modifier = Modifier.padding(14.dp)) {
-                                    Row(
-                                        modifier = Modifier.fillMaxWidth(),
-                                        horizontalArrangement = Arrangement.SpaceBetween,
-                                        verticalAlignment = Alignment.CenterVertically
-                                    ) {
-                                        Surface(
-                                            color = DepEdRed.copy(alpha = 0.12f),
-                                            shape = MaterialTheme.shapes.small
-                                        ) {
-                                            Text(
-                                                text = module.module_number ?: "Module",
-                                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
-                                                style = MaterialTheme.typography.labelMedium,
-                                                color = DepEdRed,
-                                                fontWeight = FontWeight.Bold
-                                            )
-                                        }
-                                        Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                                            if (!module.language.isNullOrEmpty()) {
-                                                Surface(
-                                                    color = if (module.language == "Filipino") DepEdRed.copy(alpha = 0.15f) else DepEdBlue.copy(alpha = 0.15f),
-                                                    shape = MaterialTheme.shapes.small
-                                                ) {
-                                                    Text(
-                                                        text = module.language,
-                                                        modifier = Modifier.padding(horizontal = 6.dp, vertical = 4.dp),
-                                                        style = MaterialTheme.typography.labelSmall,
-                                                        color = if (module.language == "Filipino") DepEdRed else DepEdBlue,
-                                                        fontWeight = FontWeight.Bold
-                                                    )
-                                                }
-                                            }
-                                            Surface(
-                                                color = DepEdBlue.copy(alpha = 0.12f),
-                                                shape = MaterialTheme.shapes.small
-                                            ) {
-                                                Text(
-                                                    text = module.sub_level ?: module.level.replace("_", " "),
-                                                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
-                                                    style = MaterialTheme.typography.labelMedium,
-                                                    color = DepEdBlue,
-                                                    fontWeight = FontWeight.SemiBold
-                                                )
-                                            }
-                                        }
-                                    }
-                                    Spacer(modifier = Modifier.height(8.dp))
-                                    Text(text = module.title, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
-                                    if (!module.description.isNullOrEmpty()) {
-                                        Spacer(modifier = Modifier.height(4.dp))
+                                // DepEd Tricolor Stripe Accent
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth(0.35f)
+                                        .height(4.dp)
+                                        .clip(RoundedCornerShape(99.dp))
+                                ) {
+                                    Box(modifier = Modifier.weight(1f).fillMaxHeight().background(DepEdBlue))
+                                    Box(modifier = Modifier.weight(1f).fillMaxHeight().background(DepEdRed))
+                                    Box(modifier = Modifier.weight(1f).fillMaxHeight().background(DepEdYellow))
+                                }
+
+                                Spacer(modifier = Modifier.height(10.dp))
+
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.SpaceBetween
+                                ) {
+                                    Column(modifier = Modifier.weight(1f)) {
                                         Text(
-                                            text = module.description,
-                                            style = MaterialTheme.typography.bodyMedium,
-                                            maxLines = 2,
-                                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                                            text = "ENROLLED PROGRAM TRACK",
+                                            style = MaterialTheme.typography.labelSmall,
+                                            color = DepEdYellow,
+                                            fontWeight = FontWeight.ExtraBold,
+                                            letterSpacing = 1.sp
+                                        )
+                                        Spacer(modifier = Modifier.height(2.dp))
+                                        Text(
+                                            text = user.trackLabel,
+                                            style = MaterialTheme.typography.titleMedium,
+                                            fontWeight = FontWeight.ExtraBold,
+                                            color = Color.White
                                         )
                                     }
 
-                                    Spacer(modifier = Modifier.height(10.dp))
+                                    val totalCount = if (state.allTrackModules.isNotEmpty()) {
+                                        state.allTrackModules.size
+                                    } else {
+                                        state.modules.size
+                                    }
 
-                                    // Bottom Row: Strand Info (Left) and Download Button (Right)
-                                    Row(
-                                        modifier = Modifier.fillMaxWidth(),
-                                        horizontalArrangement = Arrangement.SpaceBetween,
-                                        verticalAlignment = Alignment.CenterVertically
+                                    Surface(
+                                        color = Color.White.copy(alpha = 0.18f),
+                                        shape = RoundedCornerShape(12.dp),
+                                        border = BorderStroke(1.dp, Color.White.copy(alpha = 0.25f))
                                     ) {
-                                        if (module.strand != null) {
+                                        Text(
+                                            text = "$totalCount Modules",
+                                            modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
+                                            style = MaterialTheme.typography.labelMedium,
+                                            color = Color.White,
+                                            fontWeight = FontWeight.Bold
+                                        )
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+
+                // Search Bar with Clear Button
+                item {
+                    OutlinedTextField(
+                        value = state.searchQuery,
+                        onValueChange = { dashboardViewModel.updateSearchQuery(it) },
+                        placeholder = { Text("Search modules by title, code, or strand...") },
+                        modifier = Modifier.fillMaxWidth(),
+                        leadingIcon = {
+                            Icon(
+                                imageVector = Icons.Default.Search,
+                                contentDescription = null,
+                                tint = DepEdBlue
+                            )
+                        },
+                        trailingIcon = {
+                            if (state.searchQuery.isNotBlank()) {
+                                IconButton(onClick = { dashboardViewModel.updateSearchQuery("") }) {
+                                    Icon(
+                                        imageVector = Icons.Default.Clear,
+                                        contentDescription = "Clear search",
+                                        tint = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                }
+                            }
+                        },
+                        singleLine = true,
+                        shape = RoundedCornerShape(16.dp),
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedBorderColor = DepEdBlue,
+                            unfocusedBorderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.4f)
+                        )
+                    )
+                }
+
+                // Learning Strands Section
+                item {
+                    Column(modifier = Modifier.fillMaxWidth()) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.SpaceBetween
+                        ) {
+                            Text(
+                                text = "Learning Strands",
+                                style = MaterialTheme.typography.titleSmall,
+                                fontWeight = FontWeight.Bold,
+                                color = DepEdBlue
+                            )
+                            Text(
+                                text = "${state.strands.size} Strands",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+
+                        Spacer(modifier = Modifier.height(8.dp))
+
+                        val totalModulesCount = if (state.allTrackModules.isNotEmpty()) {
+                            state.allTrackModules.size
+                        } else {
+                            state.strands.sumOf { it.modules_count }
+                        }
+
+                        LazyRow(
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            // "All Strands" Chip
+                            item {
+                                FilterChip(
+                                    selected = state.selectedStrandId == null,
+                                    onClick = { dashboardViewModel.filterByStrand(null) },
+                                    label = {
+                                        Text(
+                                            text = "All Strands ($totalModulesCount)",
+                                            fontWeight = if (state.selectedStrandId == null) FontWeight.Bold else FontWeight.Medium
+                                        )
+                                    },
+                                    shape = RoundedCornerShape(12.dp),
+                                    colors = FilterChipDefaults.filterChipColors(
+                                        selectedContainerColor = DepEdBlue,
+                                        selectedLabelColor = Color.White
+                                    )
+                                )
+                            }
+
+                            // Dynamic Strand Chips with Genuine Module Counts
+                            items(state.strands) { strand ->
+                                FilterChip(
+                                    selected = state.selectedStrandId == strand.id,
+                                    onClick = {
+                                        val newId = if (state.selectedStrandId == strand.id) null else strand.id
+                                        dashboardViewModel.filterByStrand(newId)
+                                    },
+                                    label = {
+                                        Text(
+                                            text = "${strand.code} (${strand.modules_count})",
+                                            fontWeight = if (state.selectedStrandId == strand.id) FontWeight.Bold else FontWeight.Normal
+                                        )
+                                    },
+                                    shape = RoundedCornerShape(12.dp),
+                                    colors = FilterChipDefaults.filterChipColors(
+                                        selectedContainerColor = DepEdBlue,
+                                        selectedLabelColor = Color.White
+                                    )
+                                )
+                            }
+                        }
+                    }
+                }
+
+                // Curriculum Filters & Sub-Levels
+                item {
+                    Column(modifier = Modifier.fillMaxWidth()) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.SpaceBetween
+                        ) {
+                            Text(
+                                text = if (user.isLearner) "Curriculum Filters" else "Track Sub-Levels",
+                                style = MaterialTheme.typography.titleSmall,
+                                fontWeight = FontWeight.Bold,
+                                color = DepEdBlue
+                            )
+                            if (state.selectedStrandId != null || state.selectedSubLevel != null || state.selectedLanguage != null || state.filterDownloadedOnly) {
+                                Text(
+                                    text = "Reset All",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    fontWeight = FontWeight.Bold,
+                                    color = DepEdRed,
+                                    modifier = Modifier.clickable { dashboardViewModel.clearAllFilters() }
+                                )
+                            }
+                        }
+
+                        Spacer(modifier = Modifier.height(8.dp))
+
+                        LazyRow(
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            // Downloaded Filter Pill
+                            item {
+                                FilterChip(
+                                    selected = state.filterDownloadedOnly,
+                                    onClick = { dashboardViewModel.toggleFilterDownloadedOnly() },
+                                    label = {
+                                        Row(verticalAlignment = Alignment.CenterVertically) {
+                                            Icon(
+                                                imageVector = Icons.Default.Check,
+                                                contentDescription = null,
+                                                modifier = Modifier.size(14.dp),
+                                                tint = if (state.filterDownloadedOnly) Color.White else Color(0xFF16A34A)
+                                            )
+                                            Spacer(modifier = Modifier.width(4.dp))
                                             Text(
-                                                text = "Strand: ${module.strand.title ?: module.strand.name ?: module.strand.code}",
-                                                style = MaterialTheme.typography.bodySmall,
-                                                color = MaterialTheme.colorScheme.primary,
-                                                fontWeight = FontWeight.Medium,
-                                                modifier = Modifier.weight(1f).padding(end = 8.dp)
+                                                text = "Downloaded (${state.downloadedModuleIds.size})",
+                                                fontWeight = FontWeight.Bold
+                                            )
+                                        }
+                                    },
+                                    shape = RoundedCornerShape(12.dp),
+                                    colors = FilterChipDefaults.filterChipColors(
+                                        selectedContainerColor = Color(0xFF16A34A),
+                                        selectedLabelColor = Color.White
+                                    )
+                                )
+                            }
+
+                            // Sub-Level / Language Pills
+                            if (!user.isLearner || user.isBlp) {
+                                item {
+                                    FilterChip(
+                                        selected = state.selectedSubLevel == "Basic Literacy",
+                                        onClick = {
+                                            dashboardViewModel.filterBySubLevel(
+                                                if (state.selectedSubLevel == "Basic Literacy") null else "Basic Literacy"
+                                            )
+                                        },
+                                        shape = RoundedCornerShape(12.dp),
+                                        label = { Text("Basic Literacy") }
+                                    )
+                                }
+                            }
+
+                            if (!user.isLearner || user.isElementary) {
+                                item {
+                                    FilterChip(
+                                        selected = state.selectedSubLevel == "Lower Elementary",
+                                        onClick = {
+                                            dashboardViewModel.filterBySubLevel(
+                                                if (state.selectedSubLevel == "Lower Elementary") null else "Lower Elementary"
+                                            )
+                                        },
+                                        shape = RoundedCornerShape(12.dp),
+                                        label = { Text("Lower Elementary") }
+                                    )
+                                }
+                                item {
+                                    FilterChip(
+                                        selected = state.selectedSubLevel == "Advanced Elementary",
+                                        onClick = {
+                                            dashboardViewModel.filterBySubLevel(
+                                                if (state.selectedSubLevel == "Advanced Elementary") null else "Advanced Elementary"
+                                            )
+                                        },
+                                        shape = RoundedCornerShape(12.dp),
+                                        label = { Text("Advanced Elementary") }
+                                    )
+                                }
+                            }
+
+                            if (!user.isLearner || user.isJuniorHigh) {
+                                item {
+                                    FilterChip(
+                                        selected = state.selectedSubLevel == "Junior High School",
+                                        onClick = {
+                                            dashboardViewModel.filterBySubLevel(
+                                                if (state.selectedSubLevel == "Junior High School") null else "Junior High School"
+                                            )
+                                        },
+                                        shape = RoundedCornerShape(12.dp),
+                                        label = { Text("Junior High School") }
+                                    )
+                                }
+                            }
+
+                            item {
+                                FilterChip(
+                                    selected = state.selectedLanguage == "English",
+                                    onClick = {
+                                        dashboardViewModel.filterByLanguage(
+                                            if (state.selectedLanguage == "English") null else "English"
+                                        )
+                                    },
+                                    shape = RoundedCornerShape(12.dp),
+                                    label = { Text("English") }
+                                )
+                            }
+
+                            item {
+                                FilterChip(
+                                    selected = state.selectedLanguage == "Filipino",
+                                    onClick = {
+                                        dashboardViewModel.filterByLanguage(
+                                            if (state.selectedLanguage == "Filipino") null else "Filipino"
+                                        )
+                                    },
+                                    shape = RoundedCornerShape(12.dp),
+                                    label = { Text("Filipino") }
+                                )
+                            }
+                        }
+                    }
+                }
+
+                // Section Header for Modules
+                item {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(top = 4.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Text(
+                            text = "Self-Learning Modules (${state.modules.size})",
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.ExtraBold,
+                            color = DepEdBlue
+                        )
+                    }
+                }
+
+                // Empty State
+                if (state.modules.isEmpty() && !state.isLoading) {
+                    item {
+                        Card(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(vertical = 24.dp),
+                            shape = RoundedCornerShape(20.dp),
+                            colors = CardDefaults.cardColors(
+                                containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+                            )
+                        ) {
+                            Column(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(32.dp),
+                                horizontalAlignment = Alignment.CenterHorizontally
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Outlined.SearchOff,
+                                    contentDescription = null,
+                                    modifier = Modifier.size(54.dp),
+                                    tint = MaterialTheme.colorScheme.primary
+                                )
+                                Spacer(modifier = Modifier.height(12.dp))
+                                Text(
+                                    text = "No Modules Found",
+                                    style = MaterialTheme.typography.titleMedium,
+                                    fontWeight = FontWeight.Bold
+                                )
+                                Spacer(modifier = Modifier.height(4.dp))
+                                Text(
+                                    text = "No modules matched your current filter or search criteria.",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                                Spacer(modifier = Modifier.height(16.dp))
+                                Button(
+                                    onClick = { dashboardViewModel.clearAllFilters() },
+                                    colors = ButtonDefaults.buttonColors(containerColor = DepEdBlue),
+                                    shape = RoundedCornerShape(12.dp)
+                                ) {
+                                    Text("Reset All Filters", fontWeight = FontWeight.Bold)
+                                }
+                            }
+                        }
+                    }
+                }
+
+                // Module Cards List
+                items(state.modules, key = { it.id }) { module ->
+                    val isDownloaded = state.downloadedModuleIds.contains(module.id)
+                    val isDownloading = state.downloadingModuleIds.contains(module.id)
+
+                    Card(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable { onModuleClick(module) },
+                        shape = RoundedCornerShape(18.dp),
+                        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+                        colors = CardDefaults.cardColors(
+                            containerColor = MaterialTheme.colorScheme.surface
+                        ),
+                        border = BorderStroke(
+                            1.dp,
+                            MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.6f)
+                        )
+                    ) {
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(16.dp)
+                        ) {
+                            // Top Tag Badges Row
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                // Module Code Pill
+                                val codeText = module.module_number ?: "M-${module.id}"
+                                Surface(
+                                    shape = RoundedCornerShape(8.dp),
+                                    color = DepEdRed.copy(alpha = 0.10f),
+                                    border = BorderStroke(1.dp, DepEdRed.copy(alpha = 0.25f))
+                                ) {
+                                    Text(
+                                        text = codeText,
+                                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp),
+                                        style = MaterialTheme.typography.labelSmall,
+                                        fontWeight = FontWeight.Black,
+                                        color = DepEdRed
+                                    )
+                                }
+
+                                Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                                    // Language Pill
+                                    if (!module.language.isNullOrBlank()) {
+                                        Surface(
+                                            shape = RoundedCornerShape(8.dp),
+                                            color = DepEdBlue.copy(alpha = 0.10f)
+                                        ) {
+                                            Text(
+                                                text = module.language,
+                                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp),
+                                                style = MaterialTheme.typography.labelSmall,
+                                                color = DepEdBlue,
+                                                fontWeight = FontWeight.Bold
+                                            )
+                                        }
+                                    }
+
+                                    // Sub-Level Pill
+                                    val subLevelLabel = module.sub_level ?: module.level
+                                    Surface(
+                                        shape = RoundedCornerShape(8.dp),
+                                        color = MaterialTheme.colorScheme.surfaceVariant
+                                    ) {
+                                        Text(
+                                            text = subLevelLabel,
+                                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp),
+                                            style = MaterialTheme.typography.labelSmall,
+                                            fontWeight = FontWeight.Medium,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                                        )
+                                    }
+                                }
+                            }
+
+                            Spacer(modifier = Modifier.height(10.dp))
+
+                            // Module Title
+                            Text(
+                                text = module.title,
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.Bold,
+                                maxLines = 2,
+                                overflow = TextOverflow.Ellipsis,
+                                lineHeight = 21.sp
+                            )
+
+                            // Description
+                            if (!module.description.isNullOrEmpty()) {
+                                Spacer(modifier = Modifier.height(4.dp))
+                                Text(
+                                    text = module.description,
+                                    style = MaterialTheme.typography.bodySmall,
+                                    maxLines = 2,
+                                    overflow = TextOverflow.Ellipsis,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+
+                            Spacer(modifier = Modifier.height(14.dp))
+
+                            // Bottom Row: Strand Info + Action Button
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                val strandName = module.strand?.title ?: module.strand?.name ?: module.strand?.code ?: "Curriculum Strand"
+                                Row(
+                                    modifier = Modifier.weight(1f).padding(end = 8.dp),
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Outlined.Book,
+                                        contentDescription = null,
+                                        tint = DepEdBlue,
+                                        modifier = Modifier.size(15.dp)
+                                    )
+                                    Spacer(modifier = Modifier.width(4.dp))
+                                    Text(
+                                        text = strandName,
+                                        style = MaterialTheme.typography.labelMedium,
+                                        color = DepEdBlue,
+                                        fontWeight = FontWeight.SemiBold,
+                                        maxLines = 1,
+                                        overflow = TextOverflow.Ellipsis
+                                    )
+                                }
+
+                                // Download Action Button
+                                Surface(
+                                    onClick = {
+                                        if (!isDownloaded && !isDownloading) {
+                                            dashboardViewModel.downloadModule(module.id)
+                                        } else if (isDownloaded) {
+                                            onModuleClick(module)
+                                        }
+                                    },
+                                    shape = RoundedCornerShape(10.dp),
+                                    color = when {
+                                        isDownloaded -> Color(0xFF16A34A) // Emerald Green
+                                        isDownloading -> Color(0xFFE2E8F0)
+                                        else -> MaterialTheme.colorScheme.surfaceVariant
+                                    },
+                                    contentColor = when {
+                                        isDownloaded -> Color.White
+                                        else -> MaterialTheme.colorScheme.onSurfaceVariant
+                                    },
+                                    border = BorderStroke(
+                                        1.dp,
+                                        if (isDownloaded) Color(0xFF15803D) else MaterialTheme.colorScheme.outlineVariant
+                                    ),
+                                    modifier = Modifier.height(34.dp)
+                                ) {
+                                    Row(
+                                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.Center
+                                    ) {
+                                        if (isDownloading) {
+                                            CircularProgressIndicator(
+                                                modifier = Modifier.size(14.dp),
+                                                strokeWidth = 2.dp,
+                                                color = DepEdBlue
+                                            )
+                                            Spacer(modifier = Modifier.width(6.dp))
+                                            Text(
+                                                text = "Downloading...",
+                                                style = MaterialTheme.typography.labelSmall,
+                                                fontWeight = FontWeight.Bold
+                                            )
+                                        } else if (isDownloaded) {
+                                            Icon(
+                                                imageVector = Icons.Default.Check,
+                                                contentDescription = "Downloaded",
+                                                modifier = Modifier.size(15.dp),
+                                                tint = Color.White
+                                            )
+                                            Spacer(modifier = Modifier.width(5.dp))
+                                            Text(
+                                                text = "Downloaded",
+                                                style = MaterialTheme.typography.labelSmall,
+                                                fontWeight = FontWeight.Bold,
+                                                color = Color.White
                                             )
                                         } else {
-                                            Spacer(modifier = Modifier.weight(1f))
-                                        }
-
-                                        val isDownloaded = state.downloadedModuleIds.contains(module.id)
-                                        val isDownloading = state.downloadingModuleIds.contains(module.id)
-
-                                        // Download Button with Transition: Gray when not downloaded -> Green when downloaded
-                                        Surface(
-                                            onClick = {
-                                                if (!isDownloaded && !isDownloading) {
-                                                    dashboardViewModel.downloadModule(module.id)
-                                                } else if (isDownloaded) {
-                                                    Toast.makeText(context, "Modyul ay na-download na para sa offline reading.", Toast.LENGTH_SHORT).show()
-                                                }
-                                            },
-                                            shape = RoundedCornerShape(8.dp),
-                                            color = when {
-                                                isDownloaded -> Color(0xFF16A34A) // Green when downloaded
-                                                isDownloading -> Color(0xFFCBD5E1) // Gray during download
-                                                else -> Color(0xFFE2E8F0) // Gray before download
-                                            },
-                                            contentColor = when {
-                                                isDownloaded -> Color.White
-                                                else -> Color(0xFF475569)
-                                            },
-                                            border = BorderStroke(
-                                                1.dp,
-                                                if (isDownloaded) Color(0xFF15803D) else Color(0xFFCBD5E1)
-                                            ),
-                                            modifier = Modifier.height(34.dp)
-                                        ) {
-                                            Row(
-                                                modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
-                                                verticalAlignment = Alignment.CenterVertically,
-                                                horizontalArrangement = Arrangement.Center
-                                            ) {
-                                                if (isDownloading) {
-                                                    CircularProgressIndicator(
-                                                        modifier = Modifier.size(14.dp),
-                                                        strokeWidth = 2.dp,
-                                                        color = DepEdBlue
-                                                    )
-                                                    Spacer(modifier = Modifier.width(6.dp))
-                                                    Text(
-                                                        text = "Downloading",
-                                                        style = MaterialTheme.typography.labelSmall,
-                                                        fontWeight = FontWeight.Bold,
-                                                        color = Color(0xFF475569)
-                                                    )
-                                                } else if (isDownloaded) {
-                                                    Icon(
-                                                        imageVector = Icons.Default.Check,
-                                                        contentDescription = "Downloaded",
-                                                        modifier = Modifier.size(16.dp),
-                                                        tint = Color.White
-                                                    )
-                                                    Spacer(modifier = Modifier.width(5.dp))
-                                                    Text(
-                                                        text = "Downloaded",
-                                                        style = MaterialTheme.typography.labelSmall,
-                                                        fontWeight = FontWeight.Bold,
-                                                        color = Color.White
-                                                    )
-                                                } else {
-                                                    Icon(
-                                                        painter = painterResource(id = R.drawable.ic_download),
-                                                        contentDescription = "Download Module",
-                                                        modifier = Modifier.size(16.dp),
-                                                        tint = Color(0xFF475569)
-                                                    )
-                                                    Spacer(modifier = Modifier.width(5.dp))
-                                                    Text(
-                                                        text = "Download",
-                                                        style = MaterialTheme.typography.labelSmall,
-                                                        fontWeight = FontWeight.Bold,
-                                                        color = Color(0xFF475569)
-                                                    )
-                                                }
-                                            }
+                                            Icon(
+                                                imageVector = Icons.Outlined.CloudDownload,
+                                                contentDescription = "Download Module",
+                                                modifier = Modifier.size(16.dp),
+                                                tint = DepEdBlue
+                                            )
+                                            Spacer(modifier = Modifier.width(5.dp))
+                                            Text(
+                                                text = "Download",
+                                                style = MaterialTheme.typography.labelSmall,
+                                                fontWeight = FontWeight.Bold,
+                                                color = DepEdBlue
+                                            )
                                         }
                                     }
                                 }

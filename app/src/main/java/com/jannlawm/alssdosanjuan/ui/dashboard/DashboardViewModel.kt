@@ -17,6 +17,7 @@ import kotlinx.coroutines.withContext
 
 data class DashboardUiState(
     val strands: List<Strand> = emptyList(),
+    val allTrackModules: List<ModuleItem> = emptyList(),
     val rawModules: List<ModuleItem> = emptyList(),
     val modules: List<ModuleItem> = emptyList(),
     val selectedStrandId: Int? = null,
@@ -75,10 +76,11 @@ class DashboardViewModel(application: Application) : AndroidViewModel(applicatio
                 )
             }
 
-            val strandsResult = moduleRepository.fetchStrands()
+            val currentLevel = _uiState.value.selectedLevel
+            val strandsResult = moduleRepository.fetchStrands(currentLevel)
             val modulesResult = moduleRepository.fetchAndCacheModules(
                 _uiState.value.selectedStrandId,
-                _uiState.value.selectedLevel,
+                currentLevel,
                 _uiState.value.selectedSubLevel,
                 _uiState.value.selectedLanguage,
                 _uiState.value.searchQuery
@@ -94,6 +96,31 @@ class DashboardViewModel(application: Application) : AndroidViewModel(applicatio
             }
 
             _uiState.update { state ->
+                // Maintain allTrackModules whenever we fetch unfiltered track modules
+                val allModulesForCounts = if (state.selectedStrandId == null && state.selectedSubLevel == null && state.selectedLanguage == null && state.searchQuery.isBlank() && loadedModules.isNotEmpty()) {
+                    loadedModules
+                } else if (state.allTrackModules.isNotEmpty()) {
+                    state.allTrackModules
+                } else {
+                    loadedModules
+                }
+
+                val rawStrands = strandsResult.getOrDefault(state.strands)
+                val computedStrands = rawStrands.map { strand ->
+                    val matchingCount = allModulesForCounts.count { m ->
+                        (m.strand?.id != null && m.strand.id != 0 && m.strand.id == strand.id) ||
+                        (m.strand?.code != null && m.strand.code.equals(strand.code, ignoreCase = true)) ||
+                        (m.strand?.title != null && (m.strand.title.equals(strand.name, ignoreCase = true) || m.strand.title.equals(strand.code, ignoreCase = true)))
+                    }
+                    val count = when {
+                        strand.modules_count > 0 -> strand.modules_count
+                        strand.published_modules_count > 0 -> strand.published_modules_count
+                        matchingCount > 0 -> matchingCount
+                        else -> 0
+                    }
+                    strand.copy(modules_count = count)
+                }
+
                 val filtered = if (state.filterDownloadedOnly) {
                     loadedModules.filter { downloadedIds.contains(it.id) }
                 } else {
@@ -104,7 +131,8 @@ class DashboardViewModel(application: Application) : AndroidViewModel(applicatio
                     isLoading = false,
                     isRefreshing = false,
                     isOffline = isOffline,
-                    strands = strandsResult.getOrDefault(state.strands),
+                    strands = computedStrands,
+                    allTrackModules = allModulesForCounts,
                     rawModules = loadedModules,
                     modules = filtered,
                     downloadedModuleIds = downloadedIds,
@@ -216,6 +244,19 @@ class DashboardViewModel(application: Application) : AndroidViewModel(applicatio
 
     fun updateSearchQuery(query: String) {
         _uiState.update { it.copy(searchQuery = query) }
+        loadStrandsAndModules()
+    }
+
+    fun clearAllFilters() {
+        _uiState.update {
+            it.copy(
+                selectedStrandId = null,
+                selectedSubLevel = null,
+                selectedLanguage = null,
+                filterDownloadedOnly = false,
+                searchQuery = ""
+            )
+        }
         loadStrandsAndModules()
     }
 }

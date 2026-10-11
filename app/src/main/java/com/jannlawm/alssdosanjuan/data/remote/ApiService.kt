@@ -1,4 +1,4 @@
-﻿package com.jannlawm.alssdosanjuan.data.remote
+package com.jannlawm.alssdosanjuan.data.remote
 
 import com.jannlawm.alssdosanjuan.data.model.*
 import okhttp3.ResponseBody
@@ -19,7 +19,7 @@ interface ApiService {
 
     // 2. Curriculum & Modules
     @GET("strands")
-    suspend fun getStrands(): Response<StrandsResponse>
+    suspend fun getStrands(@Query("level") level: String? = null): Response<StrandsResponse>
 
     @GET("modules")
     suspend fun getModules(
