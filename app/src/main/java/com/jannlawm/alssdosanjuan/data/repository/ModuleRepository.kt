@@ -1,4 +1,4 @@
-﻿package com.jannlawm.alssdosanjuan.data.repository
+package com.jannlawm.alssdosanjuan.data.repository
 
 import android.content.Context
 import com.jannlawm.alssdosanjuan.data.local.AppDbHelper
@@ -22,10 +22,10 @@ class ModuleRepository(context: Context) {
         return if (file.exists() && file.length() > 0) file else null
     }
 
-    suspend fun fetchStrands(): Result<List<Strand>> {
+    suspend fun fetchStrands(level: String? = null): Result<List<Strand>> {
         return withContext(Dispatchers.IO) {
             try {
-                val response = apiService.getStrands()
+                val response = apiService.getStrands(level)
                 if (response.isSuccessful && response.body() != null) {
                     Result.success(response.body()!!.data)
                 } else {
