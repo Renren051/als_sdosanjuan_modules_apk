@@ -2,6 +2,8 @@
 
 import androidx.room.Entity
 import androidx.room.PrimaryKey
+import com.jannlawm.alssdosanjuan.data.model.ModuleItem
+import com.jannlawm.alssdosanjuan.data.model.Strand
 
 @Entity(tableName = "cached_modules")
 data class CachedModuleEntity(
@@ -15,4 +17,18 @@ data class CachedModuleEntity(
     val fileSize: String?,
     val strandTitle: String?,
     val localPdfPath: String?
-)
+) {
+    fun toModuleItem(): ModuleItem {
+        return ModuleItem(
+            id = id,
+            title = title,
+            description = description,
+            level = level,
+            sub_level = subLevel,
+            language = language,
+            module_number = moduleNumber,
+            file_size = fileSize,
+            strand = if (strandTitle != null) Strand(id = 0, code = strandTitle, title = strandTitle) else null
+        )
+    }
+}

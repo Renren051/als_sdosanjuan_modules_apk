@@ -66,10 +66,14 @@ class ModuleRepository(context: Context) {
                     dbHelper.insertModules(entities)
                     Result.success(modules)
                 } else {
-                    Result.failure(Exception("Failed to fetch modules"))
+                    // Fallback to SQLite cached modules
+                    val local = dbHelper.getCachedModules(level, subLevel, language, query).map { it.toModuleItem() }
+                    Result.success(local)
                 }
             } catch (e: Exception) {
-                Result.failure(e)
+                // Offline fallback: load from local SQLite cache!
+                val local = dbHelper.getCachedModules(level, subLevel, language, query).map { it.toModuleItem() }
+                Result.success(local)
             }
         }
     }

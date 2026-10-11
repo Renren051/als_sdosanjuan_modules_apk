@@ -11,10 +11,11 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Check
-import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material3.*
+import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -83,12 +84,14 @@ fun DashboardScreen(
                 },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = DepEdBlue),
                 actions = {
-                    // Dark/Light Mode Toggle
+                    // Dark / Light Mode Toggle with Sun & Moon Icons
                     IconButton(onClick = { onToggleDarkMode(!isDarkMode) }) {
                         Icon(
-                            imageVector = Icons.Default.Settings,
-                            contentDescription = "Toggle Theme",
-                            tint = Color.White
+                            painter = painterResource(
+                                id = if (isDarkMode) R.drawable.ic_light_mode else R.drawable.ic_dark_mode
+                            ),
+                            contentDescription = if (isDarkMode) "Switch to Light Mode" else "Switch to Dark Mode",
+                            tint = if (isDarkMode) DepEdYellow else Color.White
                         )
                     }
                     IconButton(onClick = onOpenChat) {
@@ -114,8 +117,41 @@ fun DashboardScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(paddingValues)
-                .padding(16.dp)
+                .padding(horizontal = 16.dp, vertical = 12.dp)
         ) {
+            // Offline Mode Notice Banner
+            if (state.isOffline) {
+                Surface(
+                    color = Color(0xFFFEF3C7),
+                    shape = MaterialTheme.shapes.medium,
+                    border = BorderStroke(1.dp, Color(0xFFF59E0B)),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(bottom = 10.dp)
+                ) {
+                    Row(
+                        modifier = Modifier.padding(12.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(Icons.Default.Info, contentDescription = null, tint = Color(0xFFD97706))
+                        Spacer(modifier = Modifier.width(10.dp))
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                text = "Offline Mode Active",
+                                fontWeight = FontWeight.Bold,
+                                color = Color(0xFF92400E),
+                                style = MaterialTheme.typography.labelLarge
+                            )
+                            Text(
+                                text = "Showing local cache. You have ${state.downloadedModuleIds.size} modules downloaded for offline study.",
+                                color = Color(0xFFB45309),
+                                style = MaterialTheme.typography.bodySmall
+                            )
+                        }
+                    }
+                }
+            }
+
             // Enrolled Program Track Banner
             Surface(
                 color = DepEdBlue.copy(alpha = 0.08f),
@@ -156,7 +192,7 @@ fun DashboardScreen(
                 }
             }
 
-            Spacer(modifier = Modifier.height(12.dp))
+            Spacer(modifier = Modifier.height(10.dp))
 
             // Search Bar
             OutlinedTextField(
@@ -169,7 +205,7 @@ fun DashboardScreen(
                 shape = MaterialTheme.shapes.medium
             )
 
-            Spacer(modifier = Modifier.height(14.dp))
+            Spacer(modifier = Modifier.height(12.dp))
 
             Text(text = "Learning Strands", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold, color = DepEdBlue)
             Spacer(modifier = Modifier.height(6.dp))
@@ -194,7 +230,7 @@ fun DashboardScreen(
                 }
             }
 
-            Spacer(modifier = Modifier.height(12.dp))
+            Spacer(modifier = Modifier.height(10.dp))
 
             // Sub-Level & Language Filter Chips Scoped to Enrolled Track
             Text(
@@ -208,10 +244,37 @@ fun DashboardScreen(
             LazyRow(
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
+                // Filter: Downloaded Only Pill
                 item {
                     FilterChip(
-                        selected = state.selectedSubLevel == null && state.selectedLanguage == null,
+                        selected = state.filterDownloadedOnly,
+                        onClick = { dashboardViewModel.toggleFilterDownloadedOnly() },
+                        label = {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Icon(
+                                    imageVector = Icons.Default.Check,
+                                    contentDescription = null,
+                                    modifier = Modifier.size(14.dp),
+                                    tint = if (state.filterDownloadedOnly) Color.White else Color(0xFF16A34A)
+                                )
+                                Spacer(modifier = Modifier.width(4.dp))
+                                Text("Downloaded (${state.downloadedModuleIds.size})")
+                            }
+                        },
+                        colors = FilterChipDefaults.filterChipColors(
+                            selectedContainerColor = Color(0xFF16A34A),
+                            selectedLabelColor = Color.White
+                        )
+                    )
+                }
+
+                item {
+                    FilterChip(
+                        selected = state.selectedSubLevel == null && state.selectedLanguage == null && !state.filterDownloadedOnly,
                         onClick = {
+                            if (state.filterDownloadedOnly) {
+                                dashboardViewModel.toggleFilterDownloadedOnly()
+                            }
                             dashboardViewModel.filterBySubLevel(null)
                             dashboardViewModel.filterByLanguage(null)
                         },
@@ -284,190 +347,204 @@ fun DashboardScreen(
                 }
             }
 
-            Spacer(modifier = Modifier.height(14.dp))
+            Spacer(modifier = Modifier.height(12.dp))
 
             Text(
-                text = "Self-Learning Modules (${state.modules.size})",
+                text = if (state.filterDownloadedOnly) "Downloaded Offline Modules (${state.modules.size})" else "Self-Learning Modules (${state.modules.size})",
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.Bold,
                 color = DepEdBlue
             )
-            Spacer(modifier = Modifier.height(8.dp))
+            Spacer(modifier = Modifier.height(6.dp))
 
-            if (state.isLoading) {
-                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    CircularProgressIndicator(color = DepEdBlue)
-                }
-            } else if (state.modules.isEmpty()) {
-                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    Text("No modules found for this filter.", style = MaterialTheme.typography.bodyLarge, color = Color.Gray)
-                }
-            } else {
-                LazyColumn(
-                    verticalArrangement = Arrangement.spacedBy(10.dp),
-                    modifier = Modifier.fillMaxSize()
-                ) {
-                    items(state.modules) { module ->
-                        Card(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .clickable { onModuleClick(module) },
-                            elevation = CardDefaults.cardElevation(defaultElevation = 3.dp),
-                            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
-                        ) {
-                            Column(modifier = Modifier.padding(14.dp)) {
-                                Row(
-                                    modifier = Modifier.fillMaxWidth(),
-                                    horizontalArrangement = Arrangement.SpaceBetween,
-                                    verticalAlignment = Alignment.CenterVertically
-                                ) {
-                                    Surface(
-                                        color = DepEdRed.copy(alpha = 0.12f),
-                                        shape = MaterialTheme.shapes.small
+            // PullToRefreshBox: Slide/Pull Down to Reload
+            PullToRefreshBox(
+                isRefreshing = state.isRefreshing,
+                onRefresh = { dashboardViewModel.refresh() },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .weight(1f)
+            ) {
+                if (state.isLoading) {
+                    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                        CircularProgressIndicator(color = DepEdBlue)
+                    }
+                } else if (state.modules.isEmpty()) {
+                    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                        Text(
+                            text = if (state.filterDownloadedOnly) "No downloaded modules found yet.\nTap 'Download' on any module to make it available offline." else "No modules found.",
+                            style = MaterialTheme.typography.bodyLarge,
+                            color = Color.Gray,
+                            textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                        )
+                    }
+                } else {
+                    LazyColumn(
+                        verticalArrangement = Arrangement.spacedBy(10.dp),
+                        modifier = Modifier.fillMaxSize()
+                    ) {
+                        items(state.modules) { module ->
+                            Card(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clickable { onModuleClick(module) },
+                                elevation = CardDefaults.cardElevation(defaultElevation = 3.dp),
+                                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
+                            ) {
+                                Column(modifier = Modifier.padding(14.dp)) {
+                                    Row(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        horizontalArrangement = Arrangement.SpaceBetween,
+                                        verticalAlignment = Alignment.CenterVertically
                                     ) {
-                                        Text(
-                                            text = module.module_number ?: "Module",
-                                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
-                                            style = MaterialTheme.typography.labelMedium,
-                                            color = DepEdRed,
-                                            fontWeight = FontWeight.Bold
-                                        )
-                                    }
-                                    Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                                        if (!module.language.isNullOrEmpty()) {
-                                            Surface(
-                                                color = if (module.language == "Filipino") DepEdRed.copy(alpha = 0.15f) else DepEdBlue.copy(alpha = 0.15f),
-                                                shape = MaterialTheme.shapes.small
-                                            ) {
-                                                Text(
-                                                    text = module.language,
-                                                    modifier = Modifier.padding(horizontal = 6.dp, vertical = 4.dp),
-                                                    style = MaterialTheme.typography.labelSmall,
-                                                    color = if (module.language == "Filipino") DepEdRed else DepEdBlue,
-                                                    fontWeight = FontWeight.Bold
-                                                )
-                                            }
-                                        }
                                         Surface(
-                                            color = DepEdBlue.copy(alpha = 0.12f),
+                                            color = DepEdRed.copy(alpha = 0.12f),
                                             shape = MaterialTheme.shapes.small
                                         ) {
                                             Text(
-                                                text = module.sub_level ?: module.level.replace("_", " "),
+                                                text = module.module_number ?: "Module",
                                                 modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
                                                 style = MaterialTheme.typography.labelMedium,
-                                                color = DepEdBlue,
-                                                fontWeight = FontWeight.SemiBold
+                                                color = DepEdRed,
+                                                fontWeight = FontWeight.Bold
                                             )
                                         }
-                                    }
-                                }
-                                Spacer(modifier = Modifier.height(8.dp))
-                                Text(text = module.title, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
-                                if (!module.description.isNullOrEmpty()) {
-                                    Spacer(modifier = Modifier.height(4.dp))
-                                    Text(
-                                        text = module.description,
-                                        style = MaterialTheme.typography.bodyMedium,
-                                        maxLines = 2,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                                    )
-                                }
-
-                                Spacer(modifier = Modifier.height(10.dp))
-
-                                // Bottom Row: Strand Info (Left) and Download Button (Right)
-                                Row(
-                                    modifier = Modifier.fillMaxWidth(),
-                                    horizontalArrangement = Arrangement.SpaceBetween,
-                                    verticalAlignment = Alignment.CenterVertically
-                                ) {
-                                    if (module.strand != null) {
-                                        Text(
-                                            text = "Strand: ${module.strand.title ?: module.strand.name ?: module.strand.code}",
-                                            style = MaterialTheme.typography.bodySmall,
-                                            color = MaterialTheme.colorScheme.primary,
-                                            fontWeight = FontWeight.Medium,
-                                            modifier = Modifier.weight(1f).padding(end = 8.dp)
-                                        )
-                                    } else {
-                                        Spacer(modifier = Modifier.weight(1f))
-                                    }
-
-                                    val isDownloaded = state.downloadedModuleIds.contains(module.id)
-                                    val isDownloading = state.downloadingModuleIds.contains(module.id)
-
-                                    // Download Button with Transition: Gray when not downloaded -> Green when downloaded
-                                    Surface(
-                                        onClick = {
-                                            if (!isDownloaded && !isDownloading) {
-                                                dashboardViewModel.downloadModule(module.id)
-                                            } else if (isDownloaded) {
-                                                Toast.makeText(context, "Modyul ay na-download na para sa offline reading.", Toast.LENGTH_SHORT).show()
+                                        Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                                            if (!module.language.isNullOrEmpty()) {
+                                                Surface(
+                                                    color = if (module.language == "Filipino") DepEdRed.copy(alpha = 0.15f) else DepEdBlue.copy(alpha = 0.15f),
+                                                    shape = MaterialTheme.shapes.small
+                                                ) {
+                                                    Text(
+                                                        text = module.language,
+                                                        modifier = Modifier.padding(horizontal = 6.dp, vertical = 4.dp),
+                                                        style = MaterialTheme.typography.labelSmall,
+                                                        color = if (module.language == "Filipino") DepEdRed else DepEdBlue,
+                                                        fontWeight = FontWeight.Bold
+                                                    )
+                                                }
                                             }
-                                        },
-                                        shape = RoundedCornerShape(8.dp),
-                                        color = when {
-                                            isDownloaded -> Color(0xFF16A34A) // Green when downloaded
-                                            isDownloading -> Color(0xFFCBD5E1) // Gray during download
-                                            else -> Color(0xFFE2E8F0) // Gray before download
-                                        },
-                                        contentColor = when {
-                                            isDownloaded -> Color.White
-                                            else -> Color(0xFF475569)
-                                        },
-                                        border = BorderStroke(
-                                            1.dp,
-                                            if (isDownloaded) Color(0xFF15803D) else Color(0xFFCBD5E1)
-                                        ),
-                                        modifier = Modifier.height(34.dp)
+                                            Surface(
+                                                color = DepEdBlue.copy(alpha = 0.12f),
+                                                shape = MaterialTheme.shapes.small
+                                            ) {
+                                                Text(
+                                                    text = module.sub_level ?: module.level.replace("_", " "),
+                                                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                                                    style = MaterialTheme.typography.labelMedium,
+                                                    color = DepEdBlue,
+                                                    fontWeight = FontWeight.SemiBold
+                                                )
+                                            }
+                                        }
+                                    }
+                                    Spacer(modifier = Modifier.height(8.dp))
+                                    Text(text = module.title, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                                    if (!module.description.isNullOrEmpty()) {
+                                        Spacer(modifier = Modifier.height(4.dp))
+                                        Text(
+                                            text = module.description,
+                                            style = MaterialTheme.typography.bodyMedium,
+                                            maxLines = 2,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                                        )
+                                    }
+
+                                    Spacer(modifier = Modifier.height(10.dp))
+
+                                    // Bottom Row: Strand Info (Left) and Download Button (Right)
+                                    Row(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        horizontalArrangement = Arrangement.SpaceBetween,
+                                        verticalAlignment = Alignment.CenterVertically
                                     ) {
-                                        Row(
-                                            modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
-                                            verticalAlignment = Alignment.CenterVertically,
-                                            horizontalArrangement = Arrangement.Center
+                                        if (module.strand != null) {
+                                            Text(
+                                                text = "Strand: ${module.strand.title ?: module.strand.name ?: module.strand.code}",
+                                                style = MaterialTheme.typography.bodySmall,
+                                                color = MaterialTheme.colorScheme.primary,
+                                                fontWeight = FontWeight.Medium,
+                                                modifier = Modifier.weight(1f).padding(end = 8.dp)
+                                            )
+                                        } else {
+                                            Spacer(modifier = Modifier.weight(1f))
+                                        }
+
+                                        val isDownloaded = state.downloadedModuleIds.contains(module.id)
+                                        val isDownloading = state.downloadingModuleIds.contains(module.id)
+
+                                        // Download Button with Transition: Gray when not downloaded -> Green when downloaded
+                                        Surface(
+                                            onClick = {
+                                                if (!isDownloaded && !isDownloading) {
+                                                    dashboardViewModel.downloadModule(module.id)
+                                                } else if (isDownloaded) {
+                                                    Toast.makeText(context, "Modyul ay na-download na para sa offline reading.", Toast.LENGTH_SHORT).show()
+                                                }
+                                            },
+                                            shape = RoundedCornerShape(8.dp),
+                                            color = when {
+                                                isDownloaded -> Color(0xFF16A34A) // Green when downloaded
+                                                isDownloading -> Color(0xFFCBD5E1) // Gray during download
+                                                else -> Color(0xFFE2E8F0) // Gray before download
+                                            },
+                                            contentColor = when {
+                                                isDownloaded -> Color.White
+                                                else -> Color(0xFF475569)
+                                            },
+                                            border = BorderStroke(
+                                                1.dp,
+                                                if (isDownloaded) Color(0xFF15803D) else Color(0xFFCBD5E1)
+                                            ),
+                                            modifier = Modifier.height(34.dp)
                                         ) {
-                                            if (isDownloading) {
-                                                CircularProgressIndicator(
-                                                    modifier = Modifier.size(14.dp),
-                                                    strokeWidth = 2.dp,
-                                                    color = DepEdBlue
-                                                )
-                                                Spacer(modifier = Modifier.width(6.dp))
-                                                Text(
-                                                    text = "Downloading",
-                                                    style = MaterialTheme.typography.labelSmall,
-                                                    fontWeight = FontWeight.Bold,
-                                                    color = Color(0xFF475569)
-                                                )
-                                            } else if (isDownloaded) {
-                                                Icon(
-                                                    imageVector = Icons.Default.Check,
-                                                    contentDescription = "Downloaded",
-                                                    modifier = Modifier.size(16.dp),
-                                                    tint = Color.White
-                                                )
-                                                Spacer(modifier = Modifier.width(5.dp))
-                                                Text(
-                                                    text = "Downloaded",
-                                                    style = MaterialTheme.typography.labelSmall,
-                                                    fontWeight = FontWeight.Bold,
-                                                    color = Color.White
-                                                )
-                                            } else {
-                                                Icon(
-                                                    painter = painterResource(id = R.drawable.ic_download),
-                                                    contentDescription = "Download Module",
-                                                    modifier = Modifier.size(16.dp),
-                                                    tint = Color(0xFF475569)
-                                                )
-                                                Spacer(modifier = Modifier.width(5.dp))
-                                                Text(
-                                                    text = "Download",
-                                                    style = MaterialTheme.typography.labelSmall,
-                                                    fontWeight = FontWeight.Bold,
-                                                    color = Color(0xFF475569)
-                                                )
+                                            Row(
+                                                modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
+                                                verticalAlignment = Alignment.CenterVertically,
+                                                horizontalArrangement = Arrangement.Center
+                                            ) {
+                                                if (isDownloading) {
+                                                    CircularProgressIndicator(
+                                                        modifier = Modifier.size(14.dp),
+                                                        strokeWidth = 2.dp,
+                                                        color = DepEdBlue
+                                                    )
+                                                    Spacer(modifier = Modifier.width(6.dp))
+                                                    Text(
+                                                        text = "Downloading",
+                                                        style = MaterialTheme.typography.labelSmall,
+                                                        fontWeight = FontWeight.Bold,
+                                                        color = Color(0xFF475569)
+                                                    )
+                                                } else if (isDownloaded) {
+                                                    Icon(
+                                                        imageVector = Icons.Default.Check,
+                                                        contentDescription = "Downloaded",
+                                                        modifier = Modifier.size(16.dp),
+                                                        tint = Color.White
+                                                    )
+                                                    Spacer(modifier = Modifier.width(5.dp))
+                                                    Text(
+                                                        text = "Downloaded",
+                                                        style = MaterialTheme.typography.labelSmall,
+                                                        fontWeight = FontWeight.Bold,
+                                                        color = Color.White
+                                                    )
+                                                } else {
+                                                    Icon(
+                                                        painter = painterResource(id = R.drawable.ic_download),
+                                                        contentDescription = "Download Module",
+                                                        modifier = Modifier.size(16.dp),
+                                                        tint = Color(0xFF475569)
+                                                    )
+                                                    Spacer(modifier = Modifier.width(5.dp))
+                                                    Text(
+                                                        text = "Download",
+                                                        style = MaterialTheme.typography.labelSmall,
+                                                        fontWeight = FontWeight.Bold,
+                                                        color = Color(0xFF475569)
+                                                    )
+                                                }
                                             }
                                         }
                                     }

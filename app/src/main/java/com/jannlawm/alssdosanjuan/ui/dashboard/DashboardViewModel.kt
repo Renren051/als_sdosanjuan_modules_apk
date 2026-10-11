@@ -17,6 +17,7 @@ import kotlinx.coroutines.withContext
 
 data class DashboardUiState(
     val strands: List<Strand> = emptyList(),
+    val rawModules: List<ModuleItem> = emptyList(),
     val modules: List<ModuleItem> = emptyList(),
     val selectedStrandId: Int? = null,
     val selectedLevel: String? = null,
@@ -24,6 +25,9 @@ data class DashboardUiState(
     val selectedLanguage: String? = null,
     val searchQuery: String = "",
     val isLoading: Boolean = false,
+    val isRefreshing: Boolean = false,
+    val isOffline: Boolean = false,
+    val filterDownloadedOnly: Boolean = false,
     val errorMessage: String? = null,
     val user: User? = null,
     val downloadedModuleIds: Set<Int> = emptySet(),
@@ -61,9 +65,16 @@ class DashboardViewModel(application: Application) : AndroidViewModel(applicatio
         }
     }
 
-    fun loadStrandsAndModules() {
+    fun loadStrandsAndModules(isPullToRefresh: Boolean = false) {
         viewModelScope.launch {
-            _uiState.update { it.copy(isLoading = true, errorMessage = null) }
+            _uiState.update {
+                it.copy(
+                    isLoading = !isPullToRefresh,
+                    isRefreshing = isPullToRefresh,
+                    errorMessage = null
+                )
+            }
+
             val strandsResult = moduleRepository.fetchStrands()
             val modulesResult = moduleRepository.fetchAndCacheModules(
                 _uiState.value.selectedStrandId,
@@ -73,7 +84,9 @@ class DashboardViewModel(application: Application) : AndroidViewModel(applicatio
                 _uiState.value.searchQuery
             )
 
-            val loadedModules = modulesResult.getOrDefault(_uiState.value.modules)
+            val loadedModules = modulesResult.getOrDefault(_uiState.value.rawModules)
+            val isOffline = strandsResult.isFailure
+
             val downloadedIds = withContext(Dispatchers.IO) {
                 loadedModules.filter { m ->
                     moduleRepository.getCachedPdfFile(m.id) != null
@@ -81,14 +94,44 @@ class DashboardViewModel(application: Application) : AndroidViewModel(applicatio
             }
 
             _uiState.update { state ->
+                val filtered = if (state.filterDownloadedOnly) {
+                    loadedModules.filter { downloadedIds.contains(it.id) }
+                } else {
+                    loadedModules
+                }
+
                 state.copy(
                     isLoading = false,
+                    isRefreshing = false,
+                    isOffline = isOffline,
                     strands = strandsResult.getOrDefault(state.strands),
-                    modules = loadedModules,
+                    rawModules = loadedModules,
+                    modules = filtered,
                     downloadedModuleIds = downloadedIds,
-                    errorMessage = if (strandsResult.isFailure || modulesResult.isFailure) "Loaded with some offline limitations." else null
+                    errorMessage = if (isOffline && loadedModules.isEmpty()) {
+                        "You are currently offline. Download modules while connected to read them offline."
+                    } else null
                 )
             }
+        }
+    }
+
+    fun refresh() {
+        loadStrandsAndModules(isPullToRefresh = true)
+    }
+
+    fun toggleFilterDownloadedOnly() {
+        _uiState.update { state ->
+            val newFilter = !state.filterDownloadedOnly
+            val filtered = if (newFilter) {
+                state.rawModules.filter { state.downloadedModuleIds.contains(it.id) }
+            } else {
+                state.rawModules
+            }
+            state.copy(
+                filterDownloadedOnly = newFilter,
+                modules = filtered
+            )
         }
     }
 
@@ -101,10 +144,17 @@ class DashboardViewModel(application: Application) : AndroidViewModel(applicatio
             val result = moduleRepository.downloadModulePdf(moduleId)
             result.fold(
                 onSuccess = {
-                    _uiState.update {
-                        it.copy(
-                            downloadingModuleIds = it.downloadingModuleIds - moduleId,
-                            downloadedModuleIds = it.downloadedModuleIds + moduleId
+                    _uiState.update { state ->
+                        val newDownloaded = state.downloadedModuleIds + moduleId
+                        val newModules = if (state.filterDownloadedOnly) {
+                            state.rawModules.filter { newDownloaded.contains(it.id) }
+                        } else {
+                            state.modules
+                        }
+                        state.copy(
+                            downloadingModuleIds = state.downloadingModuleIds - moduleId,
+                            downloadedModuleIds = newDownloaded,
+                            modules = newModules
                         )
                     }
                 },
@@ -122,10 +172,20 @@ class DashboardViewModel(application: Application) : AndroidViewModel(applicatio
 
     fun refreshDownloadedState() {
         viewModelScope.launch(Dispatchers.IO) {
-            val downloaded = _uiState.value.modules.filter { m ->
+            val downloaded = _uiState.value.rawModules.filter { m ->
                 moduleRepository.getCachedPdfFile(m.id) != null
             }.map { it.id }.toSet()
-            _uiState.update { it.copy(downloadedModuleIds = downloaded) }
+            _uiState.update { state ->
+                val filtered = if (state.filterDownloadedOnly) {
+                    state.rawModules.filter { downloaded.contains(it.id) }
+                } else {
+                    state.rawModules
+                }
+                state.copy(
+                    downloadedModuleIds = downloaded,
+                    modules = filtered
+                )
+            }
         }
     }
 
