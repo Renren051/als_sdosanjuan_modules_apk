@@ -1,7 +1,7 @@
 # DepEd SDO San Juan Alternative Learning System (ALS) — Android Modular LMS
 ### Native Offline-First Mobile Learning Management System for Learners
 
-[![Version](https://img.shields.io/badge/Version-v2.0-blue?style=flat)](https://github.com/Renren051/als_sdosanjuan_modules_apk)
+[![Version](https://img.shields.io/badge/Version-v2.1%5Falpha-blue?style=flat)](https://github.com/Renren051/als_sdosanjuan_modules_apk)
 [![Kotlin](https://img.shields.io/badge/Kotlin-2.0.21-7F52FF?style=flat&logo=kotlin&logoColor=white)](https://kotlinlang.org/)
 [![Jetpack Compose](https://img.shields.io/badge/Jetpack%20Compose-BOM%202024.10.01-4285F4?style=flat&logo=android&logoColor=white)](https://developer.android.com/jetpack/compose)
 [![Material 3](https://img.shields.io/badge/Material%203-Latest-0038A8?style=flat)](https://m3.material.io/)
@@ -13,7 +13,7 @@
 
 ## 📌 Application Overview
 
-The **DepEd SDO San Juan Alternative Learning System (ALS) Mobile LMS (v2.0)** is a native Android application engineered specifically for Out-of-School Youth and Adults (OSYA). Designed under **Republic Act No. 11510**, it enables self-paced learning across San Juan City with **robust offline-first capabilities**.
+The **DepEd SDO San Juan Alternative Learning System (ALS) Mobile LMS (v2.1_alpha)** is a native Android application engineered specifically for Out-of-School Youth and Adults (OSYA). Designed under **Republic Act No. 11510**, it enables self-paced learning across San Juan City with **robust offline-first capabilities**.
 
 Built using modern **Android Jetpack Compose**, **MVVM Clean Architecture**, and **Material 3 Design**, the mobile application connects to the centralized **Laravel 12 Backend API**, sharing the exact same central database as the Web Student Information System (SIS).
 
@@ -36,7 +36,7 @@ graph LR
         Progress[("module_progress & enrollments")]
     end
 
-    subgraph Mobile_App [Android Mobile LMS v2.0]
+    subgraph Mobile_App [Android Mobile LMS v2.1_alpha]
         Android_UI["Jetpack Compose UI
 (Dashboard, Reader, ALSJay)"]
         Local_Room[("Local Room / SQLite Cache
@@ -61,7 +61,7 @@ graph LR
 
 ---
 
-## 🚀 Key Features & Highlights (v2.0)
+## 🚀 Key Features & Highlights (v2.1_alpha)
 
 ### 1. Animated Frosted-Glass Login Screen
 - **Tri-Image Cinematic Transitions:** Smooth, continuous looping background featuring 3 high-resolution educational photographs (`forbg.jpg`, `forbg1.jpg`, `forbg3.jpg`).
@@ -149,10 +149,10 @@ object Constants {
 
 ## 📦 How to Build & Generate the APK
 
-### Method 1: Ready-to-Install Prebuilt APK (v2.0)
+### Method 1: Ready-to-Install Prebuilt APK (v2.1_alpha)
 A standalone, fully compiled release APK is pre-generated in the repository root:
 ```
-ALSSDOSanJuan_v2.0.apk
+ALSSDOSanJuan_v2.1_alpha.apk
 ```
 You can transfer this APK directly to your Android device via USB, Google Drive, or Bluetooth and tap to install.
 
@@ -187,7 +187,7 @@ app/build/outputs/apk/debug/app-debug.apk
 ### Option A: Install via ADB (USB Debugging)
 Connect your physical phone via USB with **USB Debugging** enabled, then run:
 ```powershell
-adb install -r ALSSDOSanJuan_v2.0.apk
+adb install -r ALSSDOSanJuan_v2.1_alpha.apk
 ```
 
 ### Option B: Run Directly from Android Studio

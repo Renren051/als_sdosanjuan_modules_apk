@@ -10,9 +10,9 @@ android {
     defaultConfig {
         applicationId = "com.jannlawm.alssdosanjuan"
         minSdk = 24
-        targetSdk = 37
-        versionCode = 2
-        versionName = "2.0"
+        targetSdk = 35
+        versionCode = 3
+        versionName = "2.1_alpha"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables {
@@ -23,6 +23,7 @@ android {
     buildTypes {
         release {
             isMinifyEnabled = false
+            signingConfig = signingConfigs.getByName("debug")
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
