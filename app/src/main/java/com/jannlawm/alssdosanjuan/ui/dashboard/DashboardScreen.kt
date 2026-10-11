@@ -149,6 +149,15 @@ fun DashboardScreen(
                 }
                 item {
                     FilterChip(
+                        selected = state.selectedSubLevel == "Basic Literacy",
+                        onClick = {
+                            dashboardViewModel.filterBySubLevel(if (state.selectedSubLevel == "Basic Literacy") null else "Basic Literacy")
+                        },
+                        label = { Text("Basic Literacy") }
+                    )
+                }
+                item {
+                    FilterChip(
                         selected = state.selectedSubLevel == "Lower Elementary",
                         onClick = {
                             dashboardViewModel.filterBySubLevel(if (state.selectedSubLevel == "Lower Elementary") null else "Lower Elementary")
