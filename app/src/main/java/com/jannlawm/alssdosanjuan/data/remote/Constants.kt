@@ -1,4 +1,4 @@
-﻿package com.jannlawm.alssdosanjuan.data.remote
+package com.jannlawm.alssdosanjuan.data.remote
 
 import com.jannlawm.alssdosanjuan.BuildConfig
 
