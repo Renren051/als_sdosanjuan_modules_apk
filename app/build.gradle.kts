@@ -14,9 +14,28 @@ android {
         versionCode = 4
         versionName = "2.2"
 
+        manifestPlaceholders["appName"] = "ALS Mobile LMS"
+
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables {
             useSupportLibrary = true
+        }
+    }
+
+    flavorDimensions += "target"
+    productFlavors {
+        create("live") {
+            dimension = "target"
+            manifestPlaceholders["appName"] = "ALS Mobile LMS (Live)"
+            buildConfigField("String", "INITIAL_SERVER_URL", "\"https://als-sdosanjuan-for-live.onrender.com/api/v1/\"")
+            buildConfigField("String", "DEMO_MODE_LABEL", "\"Cloud Live (Render)\"")
+        }
+        create("local") {
+            dimension = "target"
+            applicationIdSuffix = ".local"
+            manifestPlaceholders["appName"] = "ALS Mobile LMS (Local)"
+            buildConfigField("String", "INITIAL_SERVER_URL", "\"http://192.168.1.15:8000/api/v1/\"")
+            buildConfigField("String", "DEMO_MODE_LABEL", "\"Local PC Wi-Fi\"")
         }
     }
 
@@ -36,6 +55,7 @@ android {
     }
     buildFeatures {
         compose = true
+        buildConfig = true
     }
     packaging {
         resources {
