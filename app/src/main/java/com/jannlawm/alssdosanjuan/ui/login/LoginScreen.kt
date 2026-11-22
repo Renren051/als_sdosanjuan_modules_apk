@@ -6,6 +6,8 @@ import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
@@ -16,9 +18,14 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.VisibilityOff
+import androidx.compose.material.icons.outlined.Cloud
+import androidx.compose.material.icons.outlined.Dns
 import androidx.compose.material.icons.outlined.ErrorOutline
 import androidx.compose.material.icons.outlined.Lock
 import androidx.compose.material.icons.outlined.Person
+import androidx.compose.material.icons.outlined.PhoneAndroid
+import androidx.compose.material.icons.outlined.Settings
+import androidx.compose.material.icons.outlined.Wifi
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -44,6 +51,7 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.jannlawm.alssdosanjuan.R
 import com.jannlawm.alssdosanjuan.data.model.User
+import com.jannlawm.alssdosanjuan.data.remote.Constants
 import com.jannlawm.alssdosanjuan.ui.theme.DepEdBlue
 import com.jannlawm.alssdosanjuan.ui.theme.DepEdRed
 import com.jannlawm.alssdosanjuan.ui.theme.DepEdYellow
@@ -57,6 +65,7 @@ fun LoginScreen(
     val state by loginViewModel.uiState.collectAsState()
     val focusManager = LocalFocusManager.current
     var passwordVisible by remember { mutableStateOf(false) }
+    var showServerDialog by remember { mutableStateOf(false) }
 
     LaunchedEffect(Unit) {
         loginViewModel.resetState()
@@ -168,8 +177,59 @@ fun LoginScreen(
                         style = MaterialTheme.typography.bodySmall,
                         color = Color.White.copy(alpha = 0.70f),
                         textAlign = TextAlign.Center,
-                        modifier = Modifier.padding(top = 4.dp, bottom = 20.dp)
+                        modifier = Modifier.padding(top = 4.dp, bottom = 12.dp)
                     )
+
+                    // Server Connection Selector Badge
+                    val serverLabel = when {
+                        state.currentServerUrl.contains("onrender.com") -> "Cloud Live (Render)"
+                        state.currentServerUrl.contains("10.0.2.2") -> "Android Emulator (10.0.2.2)"
+                        state.currentServerUrl.contains("192.168") -> "Local PC Wi-Fi"
+                        else -> "Custom Server"
+                    }
+                    val serverIcon = when {
+                        state.currentServerUrl.contains("onrender.com") -> Icons.Outlined.Cloud
+                        state.currentServerUrl.contains("10.0.2.2") -> Icons.Outlined.PhoneAndroid
+                        state.currentServerUrl.contains("192.168") -> Icons.Outlined.Wifi
+                        else -> Icons.Outlined.Dns
+                    }
+
+                    Surface(
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(20.dp))
+                            .clickable { showServerDialog = true },
+                        color = Color.White.copy(alpha = 0.08f),
+                        border = BorderStroke(1.dp, Color.White.copy(alpha = 0.15f))
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.Center
+                        ) {
+                            Icon(
+                                imageVector = serverIcon,
+                                contentDescription = null,
+                                tint = DepEdYellow,
+                                modifier = Modifier.size(14.dp)
+                            )
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Text(
+                                text = "Server: $serverLabel",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = Color.White.copy(alpha = 0.85f),
+                                fontWeight = FontWeight.Medium
+                            )
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Icon(
+                                imageVector = Icons.Outlined.Settings,
+                                contentDescription = "Change Server",
+                                tint = Color.White.copy(alpha = 0.6f),
+                                modifier = Modifier.size(12.dp)
+                            )
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(18.dp))
 
                     // Username / Email / LRN Field
                     OutlinedTextField(
@@ -275,7 +335,53 @@ fun LoginScreen(
                         }
                     }
 
-                    Spacer(modifier = Modifier.height(22.dp))
+                    // Quick Demo Accounts Fill Section
+                    Spacer(modifier = Modifier.height(16.dp))
+                    Text(
+                        text = "DEMO CREDENTIALS (1-TAP AUTO-FILL)",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = DepEdYellow.copy(alpha = 0.90f),
+                        fontWeight = FontWeight.Bold,
+                        letterSpacing = 0.8.sp
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .horizontalScroll(rememberScrollState()),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        DemoAccountPill(
+                            label = "Elementary",
+                            isSelected = state.loginId == "learner_elem",
+                            onClick = {
+                                loginViewModel.fillCredentials("learner_elem", "Password123!")
+                            }
+                        )
+                        DemoAccountPill(
+                            label = "Junior High",
+                            isSelected = state.loginId == "learner_jhs",
+                            onClick = {
+                                loginViewModel.fillCredentials("learner_jhs", "Password123!")
+                            }
+                        )
+                        DemoAccountPill(
+                            label = "BLP",
+                            isSelected = state.loginId == "learner_blp",
+                            onClick = {
+                                loginViewModel.fillCredentials("learner_blp", "Password123!")
+                            }
+                        )
+                        DemoAccountPill(
+                            label = "Teacher",
+                            isSelected = state.loginId == "teacher_juan",
+                            onClick = {
+                                loginViewModel.fillCredentials("teacher_juan", "Password123!")
+                            }
+                        )
+                    }
+
+                    Spacer(modifier = Modifier.height(20.dp))
 
                     // Sign In Button
                     Button(
@@ -324,7 +430,7 @@ fun LoginScreen(
 
                     // Footer Note
                     Text(
-                        text = "Alternative Learning System \u2022 San Juan City`r`nOffline Reading & Telemetry Synchronized",
+                        text = "Alternative Learning System \u2022 San Juan City\nOffline Reading & Telemetry Synchronized",
                         style = MaterialTheme.typography.labelSmall,
                         color = Color.White.copy(alpha = 0.50f),
                         textAlign = TextAlign.Center,
@@ -333,8 +439,197 @@ fun LoginScreen(
                 }
             }
         }
+
+        // Server Connection Selection Dialog
+        if (showServerDialog) {
+            ServerConfigDialog(
+                currentUrl = state.currentServerUrl,
+                onDismiss = { showServerDialog = false },
+                onSelectUrl = { newUrl ->
+                    loginViewModel.setServerUrl(newUrl)
+                    showServerDialog = false
+                }
+            )
+        }
     }
 }
+
+@Composable
+fun DemoAccountPill(
+    label: String,
+    isSelected: Boolean,
+    onClick: () -> Unit
+) {
+    Surface(
+        modifier = Modifier
+            .clip(RoundedCornerShape(14.dp))
+            .clickable(onClick = onClick),
+        color = if (isSelected) DepEdYellow.copy(alpha = 0.25f) else Color.White.copy(alpha = 0.08f),
+        border = BorderStroke(
+            1.dp,
+            if (isSelected) DepEdYellow else Color.White.copy(alpha = 0.20f)
+        )
+    ) {
+        Text(
+            text = label,
+            modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
+            style = MaterialTheme.typography.labelSmall,
+            fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
+            color = if (isSelected) DepEdYellow else Color.White.copy(alpha = 0.90f)
+        )
+    }
+}
+
+@Composable
+fun ServerConfigDialog(
+    currentUrl: String,
+    onDismiss: () -> Unit,
+    onSelectUrl: (String) -> Unit
+) {
+    var customUrl by remember { mutableStateOf(currentUrl) }
+    var selectedOption by remember {
+        mutableStateOf(
+            when {
+                currentUrl.contains("onrender.com") -> "LIVE"
+                currentUrl.contains("10.0.2.2") -> "EMULATOR"
+                currentUrl.contains("192.168") -> "DEVICE"
+                else -> "CUSTOM"
+            }
+        )
+    }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = {
+            Text(
+                text = "Backend Server Connection",
+                fontWeight = FontWeight.Bold,
+                style = MaterialTheme.typography.titleMedium
+            )
+        },
+        text = {
+            Column(
+                modifier = Modifier.fillMaxWidth(),
+                verticalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
+                Text(
+                    text = "Select backend environment:",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+
+                // Option 1: Live Cloud
+                ServerOptionRow(
+                    title = "Cloud Live (Render)",
+                    subtitle = Constants.BASE_URL_LIVE,
+                    isSelected = selectedOption == "LIVE",
+                    onClick = {
+                        selectedOption = "LIVE"
+                        customUrl = Constants.BASE_URL_LIVE
+                    }
+                )
+
+                // Option 2: Local Wi-Fi PC
+                ServerOptionRow(
+                    title = "Local PC Wi-Fi (Host)",
+                    subtitle = Constants.BASE_URL_DEVICE,
+                    isSelected = selectedOption == "DEVICE",
+                    onClick = {
+                        selectedOption = "DEVICE"
+                        customUrl = Constants.BASE_URL_DEVICE
+                    }
+                )
+
+                // Option 3: Emulator
+                ServerOptionRow(
+                    title = "Android Studio Emulator",
+                    subtitle = Constants.BASE_URL_EMULATOR,
+                    isSelected = selectedOption == "EMULATOR",
+                    onClick = {
+                        selectedOption = "EMULATOR"
+                        customUrl = Constants.BASE_URL_EMULATOR
+                    }
+                )
+
+                Spacer(modifier = Modifier.height(4.dp))
+
+                // Custom URL Input
+                OutlinedTextField(
+                    value = customUrl,
+                    onValueChange = {
+                        customUrl = it
+                        selectedOption = "CUSTOM"
+                    },
+                    label = { Text("Active API Endpoint URL") },
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(12.dp)
+                )
+            }
+        },
+        confirmButton = {
+            Button(
+                onClick = { onSelectUrl(customUrl) },
+                colors = ButtonDefaults.buttonColors(containerColor = DepEdBlue)
+            ) {
+                Text("Save & Connect")
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text("Cancel")
+            }
+        }
+    )
+}
+
+@Composable
+fun ServerOptionRow(
+    title: String,
+    subtitle: String,
+    isSelected: Boolean,
+    onClick: () -> Unit
+) {
+    Surface(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(12.dp))
+            .clickable(onClick = onClick),
+        color = if (isSelected) DepEdBlue.copy(alpha = 0.12f) else Color.Transparent,
+        border = BorderStroke(
+            1.dp,
+            if (isSelected) DepEdBlue else MaterialTheme.colorScheme.outline.copy(alpha = 0.3f)
+        )
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 12.dp, vertical = 8.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            RadioButton(
+                selected = isSelected,
+                onClick = onClick,
+                colors = RadioButtonDefaults.colors(selectedColor = DepEdBlue)
+            )
+            Spacer(modifier = Modifier.width(8.dp))
+            Column {
+                Text(
+                    text = title,
+                    style = MaterialTheme.typography.bodyMedium,
+                    fontWeight = FontWeight.Bold
+                )
+                Text(
+                    text = subtitle,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 1
+                )
+            }
+        }
+    }
+}
+
 
 @Composable
 fun AnimatedBlurredBackground(

@@ -16,7 +16,8 @@ data class CachedModuleEntity(
     val moduleNumber: String? = null,
     val fileSize: String?,
     val strandTitle: String?,
-    val localPdfPath: String?
+    val localPdfPath: String?,
+    val strandId: Int = 0
 ) {
     fun toModuleItem(): ModuleItem {
         return ModuleItem(
@@ -28,7 +29,9 @@ data class CachedModuleEntity(
             language = language,
             module_number = moduleNumber,
             file_size = fileSize,
-            strand = if (strandTitle != null) Strand(id = 0, code = strandTitle, title = strandTitle) else null
+            strand = if (strandTitle != null || strandId != 0) {
+                Strand(id = strandId, code = strandTitle ?: "", title = strandTitle)
+            } else null
         )
     }
 }

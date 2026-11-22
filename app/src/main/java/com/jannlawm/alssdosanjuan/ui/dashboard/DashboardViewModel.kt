@@ -3,11 +3,13 @@
 import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
+import com.jannlawm.alssdosanjuan.data.local.TokenManager
 import com.jannlawm.alssdosanjuan.data.model.ModuleItem
 import com.jannlawm.alssdosanjuan.data.model.Strand
 import com.jannlawm.alssdosanjuan.data.model.User
 import com.jannlawm.alssdosanjuan.data.repository.ModuleRepository
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.async
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -37,57 +39,107 @@ data class DashboardUiState(
 
 class DashboardViewModel(application: Application) : AndroidViewModel(application) {
     private val moduleRepository = ModuleRepository(application)
+    private val tokenManager = TokenManager(application)
 
     private val _uiState = MutableStateFlow(DashboardUiState())
     val uiState: StateFlow<DashboardUiState> = _uiState.asStateFlow()
 
     init {
-        loadStrandsAndModules()
-    }
+        // Step 1: Pre-populate from cached user session immediately
+        val savedUser = tokenManager.getUser()
+        val enrolledLevel = when (savedUser?.latest_enrollment?.program_track) {
+            "BLP" -> "BLP"
+            "A&E_Elementary" -> "Elementary"
+            "A&E_Junior_High" -> "Junior_High"
+            else -> null
+        }
 
-    fun setUser(user: User) {
-        val currentUserId = _uiState.value.user?.id
-        if (currentUserId != user.id) {
-            val enrolledLevel = when (user.latest_enrollment?.program_track) {
-                "BLP" -> "BLP"
-                "A&E_Elementary" -> "Elementary"
-                "A&E_Junior_High" -> "Junior_High"
-                else -> null
-            }
+        if (savedUser != null) {
             _uiState.update {
                 it.copy(
-                    user = user,
-                    selectedLevel = enrolledLevel,
-                    selectedSubLevel = null,
-                    selectedStrandId = null
+                    user = savedUser,
+                    selectedLevel = enrolledLevel
                 )
             }
-            loadStrandsAndModules()
+        }
+
+        // Step 2: Instant 0ms render from local SQLite cache
+        loadLocalCache(enrolledLevel)
+
+        // Step 3: Fast concurrent background sync with server
+        syncWithServer(isPullToRefresh = false)
+    }
+
+    private fun loadLocalCache(level: String?) {
+        val localModules = moduleRepository.getLocalCachedModules(level)
+        if (localModules.isNotEmpty()) {
+            val downloadedIds = localModules.filter { m ->
+                moduleRepository.getCachedPdfFile(m.id) != null
+            }.map { it.id }.toSet()
+
+            _uiState.update { state ->
+                state.copy(
+                    isLoading = false,
+                    allTrackModules = localModules,
+                    rawModules = localModules,
+                    downloadedModuleIds = downloadedIds
+                )
+            }
+            applyLocalFilters()
         }
     }
 
-    fun loadStrandsAndModules(isPullToRefresh: Boolean = false) {
+    fun setUser(user: User) {
+        val previousUserId = _uiState.value.user?.id
+        val previousLevel = _uiState.value.selectedLevel
+        val newLevel = when (user.latest_enrollment?.program_track) {
+            "BLP" -> "BLP"
+            "A&E_Elementary" -> "Elementary"
+            "A&E_Junior_High" -> "Junior_High"
+            else -> null
+        }
+
+        _uiState.update {
+            it.copy(
+                user = user,
+                selectedLevel = newLevel
+            )
+        }
+
+        // Only reload if user or track changed, or if cache is empty
+        if (previousUserId != user.id || previousLevel != newLevel || _uiState.value.allTrackModules.isEmpty()) {
+            loadLocalCache(newLevel)
+            syncWithServer(isPullToRefresh = false)
+        }
+    }
+
+    fun syncWithServer(isPullToRefresh: Boolean = false) {
         viewModelScope.launch {
+            val hasCachedData = _uiState.value.allTrackModules.isNotEmpty()
             _uiState.update {
                 it.copy(
-                    isLoading = !isPullToRefresh,
+                    // Only show blocking spinner on cold start when no cache exists
+                    isLoading = !isPullToRefresh && !hasCachedData,
                     isRefreshing = isPullToRefresh,
                     errorMessage = null
                 )
             }
 
             val currentLevel = _uiState.value.selectedLevel
-            val strandsResult = moduleRepository.fetchStrands(currentLevel)
-            val modulesResult = moduleRepository.fetchAndCacheModules(
-                _uiState.value.selectedStrandId,
-                currentLevel,
-                _uiState.value.selectedSubLevel,
-                _uiState.value.selectedLanguage,
-                _uiState.value.searchQuery
-            )
 
-            val loadedModules = modulesResult.getOrDefault(_uiState.value.rawModules)
-            val isOffline = strandsResult.isFailure
+            // Parallel network fetch: run strands and modules concurrently
+            val strandsDeferred = async(Dispatchers.IO) {
+                moduleRepository.fetchStrands(currentLevel)
+            }
+            val modulesDeferred = async(Dispatchers.IO) {
+                moduleRepository.fetchAndCacheModules(level = currentLevel)
+            }
+
+            val strandsResult = strandsDeferred.await()
+            val modulesResult = modulesDeferred.await()
+
+            val loadedModules = modulesResult.getOrDefault(_uiState.value.allTrackModules)
+            val isOffline = strandsResult.isFailure && modulesResult.isFailure
 
             val downloadedIds = withContext(Dispatchers.IO) {
                 loadedModules.filter { m ->
@@ -96,18 +148,9 @@ class DashboardViewModel(application: Application) : AndroidViewModel(applicatio
             }
 
             _uiState.update { state ->
-                // Maintain allTrackModules whenever we fetch unfiltered track modules
-                val allModulesForCounts = if (state.selectedStrandId == null && state.selectedSubLevel == null && state.selectedLanguage == null && state.searchQuery.isBlank() && loadedModules.isNotEmpty()) {
-                    loadedModules
-                } else if (state.allTrackModules.isNotEmpty()) {
-                    state.allTrackModules
-                } else {
-                    loadedModules
-                }
-
                 val rawStrands = strandsResult.getOrDefault(state.strands)
                 val computedStrands = rawStrands.map { strand ->
-                    val matchingCount = allModulesForCounts.count { m ->
+                    val matchingCount = loadedModules.count { m ->
                         (m.strand?.id != null && m.strand.id != 0 && m.strand.id == strand.id) ||
                         (m.strand?.code != null && m.strand.code.equals(strand.code, ignoreCase = true)) ||
                         (m.strand?.title != null && (m.strand.title.equals(strand.name, ignoreCase = true) || m.strand.title.equals(strand.code, ignoreCase = true)))
@@ -121,46 +164,75 @@ class DashboardViewModel(application: Application) : AndroidViewModel(applicatio
                     strand.copy(modules_count = count)
                 }
 
-                val filtered = if (state.filterDownloadedOnly) {
-                    loadedModules.filter { downloadedIds.contains(it.id) }
-                } else {
-                    loadedModules
-                }
-
                 state.copy(
                     isLoading = false,
                     isRefreshing = false,
                     isOffline = isOffline,
                     strands = computedStrands,
-                    allTrackModules = allModulesForCounts,
+                    allTrackModules = loadedModules,
                     rawModules = loadedModules,
-                    modules = filtered,
                     downloadedModuleIds = downloadedIds,
                     errorMessage = if (isOffline && loadedModules.isEmpty()) {
                         "You are currently offline. Download modules while connected to read them offline."
                     } else null
                 )
             }
+
+            applyLocalFilters()
         }
+    }
+
+    /**
+     * Instant in-memory filtering: 0ms UI response time on chip taps and search typing.
+     */
+    private fun applyLocalFilters() {
+        val state = _uiState.value
+        val source = if (state.allTrackModules.isNotEmpty()) state.allTrackModules else state.rawModules
+        val query = state.searchQuery.trim().lowercase()
+        val strandId = state.selectedStrandId
+        val selectedStrandCode = state.strands.find { it.id == strandId }?.code?.lowercase()
+        val subLevel = state.selectedSubLevel?.lowercase()
+        val language = state.selectedLanguage?.lowercase()
+        val downloadedOnly = state.filterDownloadedOnly
+        val downloadedIds = state.downloadedModuleIds
+
+        val filtered = source.filter { m ->
+            // Strand filter: match by ID or Strand Code
+            val matchesStrand = strandId == null ||
+                (m.strand?.id != null && m.strand.id != 0 && m.strand.id == strandId) ||
+                (selectedStrandCode != null && m.strand?.code?.lowercase() == selectedStrandCode)
+
+            // Sub-level filter (e.g., Lower Elementary, Advanced Elementary)
+            val matchesSubLevel = subLevel.isNullOrBlank() ||
+                m.sub_level?.lowercase() == subLevel
+
+            // Language filter (e.g., English, Filipino)
+            val matchesLanguage = language.isNullOrBlank() ||
+                m.language?.lowercase() == language
+
+            // Search query (title, description, module code)
+            val matchesQuery = query.isBlank() || (
+                m.title.lowercase().contains(query) ||
+                (m.description?.lowercase()?.contains(query) == true) ||
+                (m.module_number?.lowercase()?.contains(query) == true)
+            )
+
+            // Downloaded only filter
+            val matchesDownloaded = !downloadedOnly || downloadedIds.contains(m.id)
+
+            matchesStrand && matchesSubLevel && matchesLanguage && matchesQuery && matchesDownloaded
+        }
+
+        _uiState.update { it.copy(modules = filtered) }
     }
 
     fun refresh() {
-        loadStrandsAndModules(isPullToRefresh = true)
+        syncWithServer(isPullToRefresh = true)
     }
 
     fun toggleFilterDownloadedOnly() {
-        _uiState.update { state ->
-            val newFilter = !state.filterDownloadedOnly
-            val filtered = if (newFilter) {
-                state.rawModules.filter { state.downloadedModuleIds.contains(it.id) }
-            } else {
-                state.rawModules
-            }
-            state.copy(
-                filterDownloadedOnly = newFilter,
-                modules = filtered
-            )
-        }
+        _uiState.update { it.copy(filterDownloadedOnly = !it.filterDownloadedOnly) }
+        applyLocalFilters()
     }
 
     fun downloadModule(moduleId: Int) {
@@ -174,17 +246,12 @@ class DashboardViewModel(application: Application) : AndroidViewModel(applicatio
                 onSuccess = {
                     _uiState.update { state ->
                         val newDownloaded = state.downloadedModuleIds + moduleId
-                        val newModules = if (state.filterDownloadedOnly) {
-                            state.rawModules.filter { newDownloaded.contains(it.id) }
-                        } else {
-                            state.modules
-                        }
                         state.copy(
                             downloadingModuleIds = state.downloadingModuleIds - moduleId,
-                            downloadedModuleIds = newDownloaded,
-                            modules = newModules
+                            downloadedModuleIds = newDownloaded
                         )
                     }
+                    applyLocalFilters()
                 },
                 onFailure = { error ->
                     _uiState.update {
@@ -198,28 +265,41 @@ class DashboardViewModel(application: Application) : AndroidViewModel(applicatio
         }
     }
 
+    fun deleteDownloadedModule(moduleId: Int) {
+        if (_uiState.value.downloadingModuleIds.contains(moduleId)) return
+
+        viewModelScope.launch {
+            val deleted = withContext(Dispatchers.IO) {
+                moduleRepository.deleteCachedPdfFile(moduleId)
+            }
+
+            if (deleted) {
+                _uiState.update { state ->
+                    val remainingDownloadedIds = state.downloadedModuleIds - moduleId
+                    state.copy(downloadedModuleIds = remainingDownloadedIds)
+                }
+                applyLocalFilters()
+            } else {
+                _uiState.update {
+                    it.copy(errorMessage = "Could not delete the downloaded module from this device.")
+                }
+            }
+        }
+    }
+
     fun refreshDownloadedState() {
         viewModelScope.launch(Dispatchers.IO) {
             val downloaded = _uiState.value.rawModules.filter { m ->
                 moduleRepository.getCachedPdfFile(m.id) != null
             }.map { it.id }.toSet()
-            _uiState.update { state ->
-                val filtered = if (state.filterDownloadedOnly) {
-                    state.rawModules.filter { downloaded.contains(it.id) }
-                } else {
-                    state.rawModules
-                }
-                state.copy(
-                    downloadedModuleIds = downloaded,
-                    modules = filtered
-                )
-            }
+            _uiState.update { it.copy(downloadedModuleIds = downloaded) }
+            applyLocalFilters()
         }
     }
 
     fun filterByStrand(strandId: Int?) {
         _uiState.update { it.copy(selectedStrandId = strandId) }
-        loadStrandsAndModules()
+        applyLocalFilters()
     }
 
     fun filterByLevel(level: String?) {
@@ -229,22 +309,22 @@ class DashboardViewModel(application: Application) : AndroidViewModel(applicatio
             return
         }
         _uiState.update { it.copy(selectedLevel = level) }
-        loadStrandsAndModules()
+        syncWithServer(isPullToRefresh = false)
     }
 
     fun filterBySubLevel(subLevel: String?) {
         _uiState.update { it.copy(selectedSubLevel = subLevel) }
-        loadStrandsAndModules()
+        applyLocalFilters()
     }
 
     fun filterByLanguage(language: String?) {
         _uiState.update { it.copy(selectedLanguage = language) }
-        loadStrandsAndModules()
+        applyLocalFilters()
     }
 
     fun updateSearchQuery(query: String) {
         _uiState.update { it.copy(searchQuery = query) }
-        loadStrandsAndModules()
+        applyLocalFilters()
     }
 
     fun clearAllFilters() {
@@ -257,6 +337,6 @@ class DashboardViewModel(application: Application) : AndroidViewModel(applicatio
                 searchQuery = ""
             )
         }
-        loadStrandsAndModules()
+        applyLocalFilters()
     }
 }

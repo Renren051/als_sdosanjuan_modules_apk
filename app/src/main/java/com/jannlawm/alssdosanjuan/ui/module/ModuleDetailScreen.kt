@@ -18,6 +18,7 @@ import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Share
+import androidx.compose.material.icons.outlined.CloudDownload
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -49,9 +50,14 @@ fun ModuleDetailScreen(
 ) {
     val state by moduleDetailViewModel.uiState.collectAsState()
     val context = LocalContext.current
+    var showModuleGame by remember(module.id) { mutableStateOf(false) }
 
     LaunchedEffect(module.id) {
         moduleDetailViewModel.loadModule(module)
+    }
+
+    DisposableEffect(module.id) {
+        onDispose { moduleDetailViewModel.releaseViewer() }
     }
 
     // Zoom & Pan state for reading PDF pages
@@ -105,7 +111,7 @@ fun ModuleDetailScreen(
                 },
                 actions = {
                     // Open in External PDF Viewer (Drive, Acrobat, WPS, etc.)
-                    if (state.pdfFile != null) {
+                    if (state.pdfFile != null && state.isDownloaded) {
                         IconButton(
                             onClick = {
                                 val file = state.pdfFile ?: return@IconButton
@@ -190,21 +196,37 @@ fun ModuleDetailScreen(
 
                     // Mark as Completed Button
                     Button(
-                        onClick = { moduleDetailViewModel.markCompleted(module.id) },
+                        onClick = {
+                            if (!state.isCompleted) {
+                                moduleDetailViewModel.markCompleted(module.id)
+                            }
+                            showModuleGame = true
+                        },
                         modifier = Modifier.fillMaxWidth(),
                         colors = ButtonDefaults.buttonColors(
-                            containerColor = if (state.completionStatus == "completed") Color(0xFF1B5E20) else DepEdRed
+                            containerColor = if (state.isCompleted) Color(0xFF1B5E20) else DepEdRed,
+                            contentColor = Color.White,
+                            disabledContainerColor = Color(0xFFE0E0E0),
+                            disabledContentColor = Color(0xFF7A7A7A)
                         ),
-                        enabled = !state.isLoading
+                        enabled = !state.isLoading &&
+                            !state.isCheckingGameStatus &&
+                            !state.hasPlayedGame &&
+                            state.pdfFile != null &&
+                            (state.isCompleted || state.currentPage >= state.totalPages)
                     ) {
                         Icon(
-                            if (state.completionStatus == "completed") Icons.Default.CheckCircle else Icons.Default.Check,
+                            if (state.isCompleted || state.hasPlayedGame) Icons.Default.CheckCircle else Icons.Default.Check,
                             contentDescription = null,
                             modifier = Modifier.size(18.dp)
                         )
                         Spacer(modifier = Modifier.width(6.dp))
                         Text(
-                            text = if (state.completionStatus == "completed") "Module Completed" else "Mark Module Completed",
+                            text = when {
+                                state.hasPlayedGame -> "Game Already Played"
+                                state.isCompleted -> "Play Learning Game"
+                                else -> "Mark Module Completed"
+                            },
                             fontWeight = FontWeight.Bold
                         )
                     }
@@ -212,12 +234,16 @@ fun ModuleDetailScreen(
             }
         }
     ) { paddingValues ->
-        Column(
+        Box(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(paddingValues)
-                .padding(horizontal = 12.dp, vertical = 8.dp)
         ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(horizontal = 12.dp, vertical = 8.dp)
+            ) {
             // Module Info Strip
             Row(
                 modifier = Modifier
@@ -265,6 +291,29 @@ fun ModuleDetailScreen(
                 }
             }
 
+            if (!state.isDownloaded) {
+                Button(
+                    onClick = { moduleDetailViewModel.downloadAndOpen(module.id, state.currentPage) },
+                    enabled = !state.isDownloading,
+                    modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp),
+                    colors = ButtonDefaults.buttonColors(containerColor = DepEdBlue)
+                ) {
+                    if (state.isDownloading) {
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(18.dp),
+                            color = Color.White,
+                            strokeWidth = 2.dp
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text("Downloading for offline reading…")
+                    } else {
+                        Icon(Icons.Outlined.CloudDownload, contentDescription = null)
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text("Download for offline reading")
+                    }
+                }
+            }
+
             // PDF Display Canvas
             Box(
                 modifier = Modifier
@@ -275,8 +324,8 @@ fun ModuleDetailScreen(
                     .border(BorderStroke(1.dp, Color(0xFFCBD5E1)), MaterialTheme.shapes.medium),
                 contentAlignment = Alignment.Center
             ) {
-                if (state.isLoading || state.isDownloading) {
-                    // Downloading / Preparing PDF State
+                if (state.isLoading) {
+                    // Loading for online viewing or initial download
                     Column(
                         horizontalAlignment = Alignment.CenterHorizontally,
                         verticalArrangement = Arrangement.Center,
@@ -289,14 +338,18 @@ fun ModuleDetailScreen(
                         )
                         Spacer(modifier = Modifier.height(16.dp))
                         Text(
-                            text = "Loading & Preparing Module PDF...",
+                            text = if (state.isDownloading) "Downloading Module for Offline Reading..." else "Opening Module for Online Viewing...",
                             style = MaterialTheme.typography.titleMedium,
                             fontWeight = FontWeight.Bold,
                             color = DepEdBlue
                         )
                         Spacer(modifier = Modifier.height(6.dp))
                         Text(
-                            text = "Downloading authentic DepEd learning material for offline reading. Once cached, this opens instantly without internet.",
+                            text = if (state.isDownloading) {
+                                "The module is being saved on this device. You can keep reading once it finishes."
+                            } else {
+                                "You can read this module online now. Download it only if you also want offline access."
+                            },
                             style = MaterialTheme.typography.bodySmall,
                             color = Color.DarkGray,
                             textAlign = androidx.compose.ui.text.style.TextAlign.Center
@@ -310,26 +363,26 @@ fun ModuleDetailScreen(
                         modifier = Modifier.padding(24.dp)
                     ) {
                         Text(
-                            text = "Unable to load module PDF",
+                            text = "Unable to open module",
                             style = MaterialTheme.typography.titleMedium,
                             fontWeight = FontWeight.Bold,
                             color = MaterialTheme.colorScheme.error
                         )
                         Spacer(modifier = Modifier.height(6.dp))
                         Text(
-                            text = state.errorMessage ?: "Unknown error occurred while downloading PDF.",
+                            text = state.errorMessage ?: "Connect to the internet to view this module or download it for offline use.",
                             style = MaterialTheme.typography.bodyMedium,
                             color = Color.DarkGray,
                             textAlign = androidx.compose.ui.text.style.TextAlign.Center
                         )
                         Spacer(modifier = Modifier.height(14.dp))
                         Button(
-                            onClick = { moduleDetailViewModel.downloadAndOpen(module.id) },
+                            onClick = { moduleDetailViewModel.loadModule(module) },
                             colors = ButtonDefaults.buttonColors(containerColor = DepEdBlue)
                         ) {
                             Icon(Icons.Default.Refresh, contentDescription = null)
                             Spacer(modifier = Modifier.width(6.dp))
-                            Text("Retry Download")
+                            Text("Try Viewing Online Again")
                         }
                     }
                 } else if (state.currentPageBitmap != null) {
@@ -387,7 +440,57 @@ fun ModuleDetailScreen(
                             }
                         }
                     }
+                } else if (state.pdfFile != null) {
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.Center,
+                        modifier = Modifier.padding(24.dp)
+                    ) {
+                        CircularProgressIndicator(color = DepEdBlue)
+                        Spacer(modifier = Modifier.height(12.dp))
+                        Text("Preparing module page…", color = DepEdBlue, fontWeight = FontWeight.Bold)
+                    }
+                } else {
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.Center,
+                        modifier = Modifier.padding(24.dp)
+                    ) {
+                        Text(
+                            text = "The module is ready to view online.",
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold,
+                            color = DepEdBlue
+                        )
+                        Spacer(modifier = Modifier.height(6.dp))
+                        Text(
+                            text = "Connect to the internet to read it, or download it for offline access.",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = Color.DarkGray,
+                            textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                        )
+                    }
                 }
+            }
+            }
+
+            if (showModuleGame) {
+                ModuleLearningGameDialog(
+                    moduleTitle = module.title,
+                    moduleLevel = module.level,
+                    moduleSubLevel = module.sub_level,
+                    moduleLanguage = module.language,
+                    onDismiss = { showModuleGame = false },
+                    onCompleted = { gameType, score, moves, elapsedSeconds ->
+                        moduleDetailViewModel.saveModuleGameScore(
+                            moduleId = module.id,
+                            gameType = gameType,
+                            score = score,
+                            moves = moves,
+                            elapsedSeconds = elapsedSeconds
+                        )
+                    }
+                )
             }
         }
     }

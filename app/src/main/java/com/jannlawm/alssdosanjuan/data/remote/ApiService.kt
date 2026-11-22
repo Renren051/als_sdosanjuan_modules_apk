@@ -32,13 +32,32 @@ interface ApiService {
 
     @GET("modules/{id}/download")
     @Streaming
-    suspend fun downloadModulePdf(@Path("id") moduleId: Int): Response<ResponseBody>
+    suspend fun downloadModulePdf(
+        @Path("id") moduleId: Int,
+        @Query("view_only") viewOnly: Boolean = false
+    ): Response<ResponseBody>
 
     // 3. Offline Telemetry Sync
     @POST("learner/sync-progress")
     suspend fun syncProgress(@Body request: SyncProgressRequest): Response<SyncProgressResponse>
 
-    // 4. ALSJay AI Assistant
-    @POST("chat")
-    suspend fun chatWithAlsjay(@Body request: ChatRequest): Response<ChatResponse>
+    @POST("learner/sync-game-scores")
+    suspend fun syncGameScores(@Body request: SyncGameScoresRequest): Response<SyncGameScoresResponse>
+
+    @GET("learner/modules/{id}/game-status")
+    suspend fun getModuleGameStatus(@Path("id") moduleId: Int): Response<ModuleGameStatusResponse>
+
+    @GET("teacher/students")
+    suspend fun getTeacherStudents(
+        @Query("q") query: String? = null
+    ): Response<TeacherStudentsResponse>
+
+    @GET("teacher/module-progress")
+    suspend fun getTeacherModuleProgress(
+        @Query("page") page: Int = 1,
+        @Query("per_page") perPage: Int = 100,
+        @Query("learner_id") learnerId: Int? = null,
+        @Query("q") query: String? = null
+    ): Response<TeacherModuleProgressResponse>
+
 }

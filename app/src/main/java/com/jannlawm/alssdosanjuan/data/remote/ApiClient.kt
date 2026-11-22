@@ -13,10 +13,12 @@ object ApiClient {
     private var cachedBaseUrl: String? = null
 
     fun getApiService(context: Context): ApiService {
-        val currentUrl = Constants.currentBaseUrl
-        if (retrofit == null || cachedBaseUrl != currentUrl) {
-            cachedBaseUrl = currentUrl
-            val tokenManager = TokenManager(context.applicationContext)
+        val tokenManager = TokenManager(context.applicationContext)
+        val targetUrl = tokenManager.getBaseUrl()
+        Constants.currentBaseUrl = targetUrl
+
+        if (retrofit == null || cachedBaseUrl != targetUrl) {
+            cachedBaseUrl = targetUrl
             val authInterceptor = AuthInterceptor(tokenManager)
 
             val loggingInterceptor = HttpLoggingInterceptor().apply {
@@ -32,11 +34,16 @@ object ApiClient {
                 .build()
 
             retrofit = Retrofit.Builder()
-                .baseUrl(currentUrl)
+                .baseUrl(targetUrl)
                 .client(okHttpClient)
                 .addConverterFactory(GsonConverterFactory.create())
                 .build()
         }
         return retrofit!!.create(ApiService::class.java)
+    }
+
+    fun resetClient() {
+        retrofit = null
+        cachedBaseUrl = null
     }
 }

@@ -1,7 +1,7 @@
 # DepEd SDO San Juan Alternative Learning System (ALS) — Android Modular LMS
 ### Native Offline-First Mobile Learning Management System for Learners
 
-[![Version](https://img.shields.io/badge/Version-v2.1%5Falpha-blue?style=flat)](https://github.com/Renren051/als_sdosanjuan_modules_apk)
+[![Version](https://img.shields.io/badge/Version-v2.2-blue?style=flat)](https://github.com/Renren051/als_sdosanjuan_modules_apk)
 [![Kotlin](https://img.shields.io/badge/Kotlin-2.0.21-7F52FF?style=flat&logo=kotlin&logoColor=white)](https://kotlinlang.org/)
 [![Jetpack Compose](https://img.shields.io/badge/Jetpack%20Compose-BOM%202024.10.01-4285F4?style=flat&logo=android&logoColor=white)](https://developer.android.com/jetpack/compose)
 [![Material 3](https://img.shields.io/badge/Material%203-Latest-0038A8?style=flat)](https://m3.material.io/)
@@ -13,7 +13,7 @@
 
 ## 📌 Application Overview
 
-The **DepEd SDO San Juan Alternative Learning System (ALS) Mobile LMS (v2.1_alpha)** is a native Android application engineered specifically for Out-of-School Youth and Adults (OSYA). Designed under **Republic Act No. 11510**, it enables self-paced learning across San Juan City with **robust offline-first capabilities**.
+The **DepEd SDO San Juan Alternative Learning System (ALS) Mobile LMS (v2.2)** is a native Android application engineered specifically for Out-of-School Youth and Adults (OSYA). Designed under **Republic Act No. 11510**, it enables self-paced learning across San Juan City with **robust offline-first capabilities**.
 
 Built using modern **Android Jetpack Compose**, **MVVM Clean Architecture**, and **Material 3 Design**, the mobile application connects to the centralized **Laravel 12 Backend API**, sharing the exact same central database as the Web Student Information System (SIS).
 
@@ -36,13 +36,13 @@ graph LR
         Progress[("module_progress & enrollments")]
     end
 
-    subgraph Mobile_App [Android Mobile LMS v2.1_alpha]
+    subgraph Mobile_App [Android Mobile LMS v2.2]
         Android_UI["Jetpack Compose UI
-(Dashboard, Reader, ALSJay)"]
+(Dashboard, Reader, Program Games, Teacher Progress)"]
         Local_Room[("Local Room / SQLite Cache
-(Downloaded PDFs & Telemetry)")]
+(Downloaded PDFs, Progress & Game Scores)")]
         Sync_Worker["WorkManager SyncWorker
-(Background Progress Sync)"]
+(Background Progress & Score Sync)"]
     end
 
     Web_Admin <-->|Laravel 12 Backend| Central_DB
@@ -61,7 +61,7 @@ graph LR
 
 ---
 
-## 🚀 Key Features & Highlights (v2.1_alpha)
+## 🚀 Key Features & Highlights (v2.2)
 
 ### 1. Animated Frosted-Glass Login Screen
 - **Tri-Image Cinematic Transitions:** Smooth, continuous looping background featuring 3 high-resolution educational photographs (`forbg.jpg`, `forbg1.jpg`, `forbg3.jpg`).
@@ -83,11 +83,13 @@ graph LR
 
 ### 4. Background Telemetry Synchronization
 - **WorkManager Automation:** Periodically checks network state and dispatches pending reading milestones to the shared MySQL database via `/api/v1/learner/sync-progress`.
-- **Zero Data Loss:** Reading timestamps and progress are preserved even if the app is closed or the device runs out of battery.
+- **Offline Score Queue:** Game scores are stored locally and synced to the shared database when the device reconnects.
+- **Teacher Progress:** Teachers and administrators can review synced learner module progress and game scores.
 
-### 5. ALSJay — DepEd AI Virtual Assistant
-- Bilingual chatbot (Tagalog & English) answering learner inquiries about ALS requirements, schedules, and learning centers.
-- Quick suggestion chips for common questions (e.g., *"Paano po mag-enroll sa ALS?"*, *"Ano ang mga Learning Strands?"*).
+### 5. Program-Based Learning Games
+- Each module game asks **5 random questions** from the learner program's question bank, with 100 questions for BLP, elementary, and secondary.
+- Secondary games include English questions along with math and logic.
+- Learners can play each module game once; scores are saved offline and sync when online.
 
 ---
 
@@ -149,10 +151,10 @@ object Constants {
 
 ## 📦 How to Build & Generate the APK
 
-### Method 1: Ready-to-Install Prebuilt APK (v2.1_alpha)
+### Method 1: Ready-to-Install Prebuilt APK (v2.2)
 A standalone, fully compiled release APK is pre-generated in the repository root:
 ```
-ALSSDOSanJuan_v2.1_alpha.apk
+ALSSDOSanJuan_v2.2.apk
 ```
 You can transfer this APK directly to your Android device via USB, Google Drive, or Bluetooth and tap to install.
 
@@ -187,7 +189,7 @@ app/build/outputs/apk/debug/app-debug.apk
 ### Option A: Install via ADB (USB Debugging)
 Connect your physical phone via USB with **USB Debugging** enabled, then run:
 ```powershell
-adb install -r ALSSDOSanJuan_v2.1_alpha.apk
+adb install -r ALSSDOSanJuan_v2.2.apk
 ```
 
 ### Option B: Run Directly from Android Studio
@@ -241,10 +243,11 @@ Log in with any of these pre-seeded learner accounts from the shared database:
 2. Whenever your device connects to Wi-Fi or mobile data, the `SyncWorker` sends your progress records to the shared database.
 3. Your assigned Mobile Teacher can immediately see your completed modules on their Web SIS portal.
 
-### 6. Asking Questions with ALSJay AI
-1. Tap the chat icon in the navigation bar to open **ALSJay**.
-2. Tap a suggestion chip or type your question in Tagalog or English.
-3. Receive instant answers on ALS policies, graduation requirements, and schedules.
+### 6. Completing Modules and Playing Games
+1. Read through the module to its final page.
+2. Tap **Mark Module Completed** to open its program-based game.
+3. Answer the 5 questions; the score is stored on the device and synced when you're online.
+4. A module game can only be played once per learner.
 
 ---
 
@@ -260,7 +263,8 @@ com.jannlawm.alssdosanjuan
 │   │   ├── AuthModels.kt             # User & Login response models
 │   │   ├── ModuleModels.kt           # Strand & Module data classes with counters
 │   │   ├── TelemetryModels.kt        # Offline progress records
-│   │   └── ChatModels.kt             # ALSJay chat payload models
+│   │   ├── GameScoreModels.kt        # Game score sync payloads
+│   │   └── TeacherProgressModels.kt  # Teacher progress response models
 │   ├── remote
 │   │   ├── ApiClient.kt              # Retrofit & OkHttpClient configuration
 │   │   ├── ApiService.kt             # REST API endpoint interfaces
@@ -269,14 +273,11 @@ com.jannlawm.alssdosanjuan
 │   ├── repository
 │   │   ├── AuthRepository.kt         # Authentication & profile management
 │   │   ├── ModuleRepository.kt       # Module fetching, caching, and filtering
-│   │   ├── TelemetryRepository.kt    # Progress tracking & sync logic
-│   │   └── ChatRepository.kt         # ALSJay AI chat interaction
+│   │   ├── TelemetryRepository.kt    # Progress and game score sync
+│   │   └── TeacherProgressRepository.kt # Teacher progress retrieval
 │   └── worker
 │       └── SyncWorker.kt             # WorkManager background sync task
 ├── ui
-│   ├── chat
-│   │   ├── ChatScreen.kt             # ALSJay chat interface with quick chips
-│   │   └── ChatViewModel.kt          # Message state handling
 │   ├── dashboard
 │   │   ├── DashboardScreen.kt        # Hero track card, search, strand chips, module list
 │   │   └── DashboardViewModel.kt     # Curriculum filtering & module state
@@ -284,8 +285,12 @@ com.jannlawm.alssdosanjuan
 │   │   ├── LoginScreen.kt            # Cinematic Ken Burns background & frosted login card
 │   │   └── LoginViewModel.kt         # Authentication validation & state
 │   ├── module
-│   │   ├── ModuleReaderScreen.kt     # In-app PDF reader with zoom & page saving
-│   │   └── ModuleViewModel.kt        # PDF streaming & local caching logic
+│   │   ├── ModuleDetailScreen.kt     # PDF reader, completion controls, and game flow
+│   │   ├── ModuleDetailViewModel.kt  # PDF rendering, progress and game status
+│   │   ├── ModuleGameQuestionBank.kt # Program question banks
+│   │   └── ModuleLearningGameDialog.kt # Five-question module game
+│   ├── teacherprogress
+│   │   └── TeacherProgressScreen.kt # Synced learner progress for teachers
 │   └── theme
 │       ├── Color.kt                  # Official DepEd Blue, Red, Yellow & Neutrals
 │       ├── Theme.kt                  # Material 3 Dynamic Light/Dark Theme
