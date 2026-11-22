@@ -1,5 +1,30 @@
 package com.jannlawm.alssdosanjuan.data.model
 
+data class TeacherStudentsResponse(
+    val success: Boolean,
+    val count: Int = 0,
+    val data: List<TeacherStudentItem>
+)
+
+data class TeacherStudentItem(
+    val id: Int,
+    val lrn: String? = null,
+    val username: String,
+    val full_name: String,
+    val email: String? = null,
+    val contact_number: String? = null,
+    val barangay: String? = null,
+    val program_track: String? = null,
+    val track_label: String? = null,
+    val clc_name: String? = null,
+    val enrollment_status: String? = null,
+    val completed_count: Int = 0,
+    val in_progress_count: Int = 0,
+    val downloaded_count: Int = 0,
+    val overall_progress_percent: Int = 0,
+    val last_active_at: String? = null
+)
+
 data class TeacherModuleProgressResponse(
     val success: Boolean,
     val data: List<TeacherModuleProgress>,

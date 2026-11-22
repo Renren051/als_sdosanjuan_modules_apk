@@ -51,7 +51,6 @@ fun DashboardScreen(
     onToggleDarkMode: (Boolean) -> Unit,
     dashboardViewModel: DashboardViewModel = viewModel(),
     onModuleClick: (ModuleItem) -> Unit,
-    onOpenTeacherProgress: () -> Unit,
     onLogout: () -> Unit
 ) {
     val state by dashboardViewModel.uiState.collectAsState()
@@ -260,33 +259,6 @@ fun DashboardScreen(
                                         style = MaterialTheme.typography.bodySmall
                                     )
                                 }
-                            }
-                        }
-                    }
-                }
-
-                if (user.role in setOf("mobile_teacher", "admin", "super_admin")) {
-                    item {
-                        Card(
-                            modifier = Modifier.fillMaxWidth().clickable(onClick = onOpenTeacherProgress),
-                            shape = RoundedCornerShape(18.dp),
-                            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-                            border = BorderStroke(1.dp, DepEdBlue.copy(alpha = 0.2f))
-                        ) {
-                            Row(
-                                modifier = Modifier.fillMaxWidth().padding(16.dp),
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.SpaceBetween
-                            ) {
-                                Column(modifier = Modifier.weight(1f)) {
-                                    Text("Student Module Progress", fontWeight = FontWeight.Bold, color = DepEdBlue)
-                                    Text(
-                                        if (user.role == "mobile_teacher") "Review progress for your assigned learners" else "Review synced learner module activity",
-                                        style = MaterialTheme.typography.bodySmall,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                                    )
-                                }
-                                Text("View  ›", color = DepEdBlue, fontWeight = FontWeight.Bold)
                             }
                         }
                     }

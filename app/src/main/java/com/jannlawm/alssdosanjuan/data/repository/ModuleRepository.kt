@@ -7,16 +7,26 @@ import com.jannlawm.alssdosanjuan.data.local.TokenManager
 import com.jannlawm.alssdosanjuan.data.model.ModuleItem
 import com.jannlawm.alssdosanjuan.data.model.Strand
 import com.jannlawm.alssdosanjuan.data.remote.ApiClient
+import com.jannlawm.alssdosanjuan.data.remote.ApiService
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import okhttp3.ResponseBody
 import java.io.File
 import java.io.FileOutputStream
 
-class ModuleRepository(context: Context) {
-    private val apiService = ApiClient.getApiService(context)
+class ModuleRepository(private val context: Context) {
+    private val apiService: ApiService
+        get() = ApiClient.getApiService(context)
     private val dbHelper = AppDbHelper(context)
     private val appContext = context.applicationContext
+
+    fun getLocalCachedModules(level: String? = null): List<ModuleItem> {
+        return try {
+            dbHelper.getCachedModules(level).map { it.toModuleItem() }
+        } catch (_: Exception) {
+            emptyList()
+        }
+    }
 
     fun getCachedPdfFile(moduleId: Int): File? {
         val file = File(appContext.filesDir, "module_$moduleId.pdf")
@@ -81,8 +91,9 @@ class ModuleRepository(context: Context) {
                             language = m.language,
                             moduleNumber = m.module_number,
                             fileSize = m.file_size,
-                            strandTitle = m.strand?.title ?: m.strand?.name,
-                            localPdfPath = null
+                            strandTitle = m.strand?.title ?: m.strand?.name ?: m.strand?.code,
+                            localPdfPath = null,
+                            strandId = m.strand?.id ?: 0
                         )
                     }
                     dbHelper.insertModules(entities)

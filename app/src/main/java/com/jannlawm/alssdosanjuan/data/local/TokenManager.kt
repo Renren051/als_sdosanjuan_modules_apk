@@ -5,6 +5,7 @@ import androidx.security.crypto.EncryptedSharedPreferences
 import androidx.security.crypto.MasterKey
 import com.google.gson.Gson
 import com.jannlawm.alssdosanjuan.data.model.User
+import com.jannlawm.alssdosanjuan.data.remote.Constants
 
 class TokenManager(context: Context) {
     private val masterKey = MasterKey.Builder(context)
@@ -59,6 +60,15 @@ class TokenManager(context: Context) {
 
     fun isDarkMode(): Boolean {
         return sharedPreferences.getBoolean("is_dark_mode", false)
+    }
+
+    fun saveBaseUrl(url: String) {
+        sharedPreferences.edit().putString("custom_base_url", url).apply()
+    }
+
+    fun getBaseUrl(): String {
+        return sharedPreferences.getString("custom_base_url", Constants.DEFAULT_BASE_URL)
+            ?: Constants.DEFAULT_BASE_URL
     }
 
     fun clear() {

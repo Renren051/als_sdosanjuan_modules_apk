@@ -5,7 +5,7 @@ import android.content.Context
 import android.database.sqlite.SQLiteDatabase
 import android.database.sqlite.SQLiteOpenHelper
 
-class AppDbHelper(context: Context) : SQLiteOpenHelper(context, "als_lms.db", null, 4) {
+class AppDbHelper(context: Context) : SQLiteOpenHelper(context, "als_lms.db", null, 5) {
 
     override fun onCreate(db: SQLiteDatabase) {
         db.execSQL("""
@@ -19,7 +19,8 @@ class AppDbHelper(context: Context) : SQLiteOpenHelper(context, "als_lms.db", nu
                 module_number TEXT,
                 file_size TEXT,
                 strand_title TEXT,
-                local_pdf_path TEXT
+                local_pdf_path TEXT,
+                strand_id INTEGER DEFAULT 0
             )
         """)
         db.execSQL("""
@@ -46,6 +47,11 @@ class AppDbHelper(context: Context) : SQLiteOpenHelper(context, "als_lms.db", nu
                 INSERT OR IGNORE INTO played_module_games (learner_id, module_id)
                 SELECT learner_id, module_id FROM module_game_scores WHERE learner_id IS NOT NULL
             """)
+        }
+        if (oldVersion < 5) {
+            try {
+                db.execSQL("ALTER TABLE cached_modules ADD COLUMN strand_id INTEGER DEFAULT 0")
+            } catch (_: Exception) {}
         }
     }
 
@@ -97,6 +103,7 @@ class AppDbHelper(context: Context) : SQLiteOpenHelper(context, "als_lms.db", nu
                     put("file_size", m.fileSize)
                     put("strand_title", m.strandTitle)
                     put("local_pdf_path", m.localPdfPath)
+                    put("strand_id", m.strandId)
                 }
                 db.insertWithOnConflict("cached_modules", null, cv, SQLiteDatabase.CONFLICT_REPLACE)
             }
@@ -152,7 +159,8 @@ class AppDbHelper(context: Context) : SQLiteOpenHelper(context, "als_lms.db", nu
                     moduleNumber = cursor.getString(cursor.getColumnIndexOrThrow("module_number")),
                     fileSize = cursor.getString(cursor.getColumnIndexOrThrow("file_size")),
                     strandTitle = cursor.getString(cursor.getColumnIndexOrThrow("strand_title")),
-                    localPdfPath = cursor.getString(cursor.getColumnIndexOrThrow("local_pdf_path"))
+                    localPdfPath = cursor.getString(cursor.getColumnIndexOrThrow("local_pdf_path")),
+                    strandId = try { cursor.getInt(cursor.getColumnIndexOrThrow("strand_id")) } catch (_: Exception) { 0 }
                 )
             )
         }

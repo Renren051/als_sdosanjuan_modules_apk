@@ -47,10 +47,16 @@ interface ApiService {
     @GET("learner/modules/{id}/game-status")
     suspend fun getModuleGameStatus(@Path("id") moduleId: Int): Response<ModuleGameStatusResponse>
 
+    @GET("teacher/students")
+    suspend fun getTeacherStudents(
+        @Query("q") query: String? = null
+    ): Response<TeacherStudentsResponse>
+
     @GET("teacher/module-progress")
     suspend fun getTeacherModuleProgress(
         @Query("page") page: Int = 1,
         @Query("per_page") perPage: Int = 100,
+        @Query("learner_id") learnerId: Int? = null,
         @Query("q") query: String? = null
     ): Response<TeacherModuleProgressResponse>
 

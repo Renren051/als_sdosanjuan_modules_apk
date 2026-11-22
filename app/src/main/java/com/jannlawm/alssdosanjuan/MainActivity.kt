@@ -1,4 +1,4 @@
-﻿package com.jannlawm.alssdosanjuan
+package com.jannlawm.alssdosanjuan
 
 import android.os.Bundle
 import androidx.activity.ComponentActivity
@@ -70,7 +70,11 @@ class MainActivity : ComponentActivity() {
                     is Screen.Splash -> {
                         SplashScreen(
                             onSplashFinished = {
-                                currentScreen = if (hasToken && currentUser != null) Screen.Dashboard else Screen.Login
+                                currentScreen = if (hasToken && currentUser != null) {
+                                    if (currentUser!!.isLearner) Screen.Dashboard else Screen.TeacherProgress
+                                } else {
+                                    Screen.Login
+                                }
                             }
                         )
                     }
@@ -78,31 +82,32 @@ class MainActivity : ComponentActivity() {
                         LoginScreen(
                             onLoginSuccess = { user ->
                                 currentUser = user
-                                currentScreen = Screen.Dashboard
+                                currentScreen = if (user.isLearner) Screen.Dashboard else Screen.TeacherProgress
                             }
                         )
                     }
                     is Screen.Dashboard -> {
                         currentUser?.let { user ->
-                            DashboardScreen(
-                                user = user,
-                                isDarkMode = isDarkMode,
-                                onToggleDarkMode = { enabled ->
-                                    isDarkMode = enabled
-                                    tokenManager.saveDarkMode(enabled)
-                                },
-                                onModuleClick = { module ->
-                                    currentScreen = Screen.ModuleDetail(module)
-                                },
-                                onOpenTeacherProgress = {
-                                    currentScreen = Screen.TeacherProgress
-                                },
-                                onLogout = {
-                                    authRepository.logout()
-                                    currentUser = null
-                                    currentScreen = Screen.Login
-                                }
-                            )
+                            if (!user.isLearner) {
+                                currentScreen = Screen.TeacherProgress
+                            } else {
+                                DashboardScreen(
+                                    user = user,
+                                    isDarkMode = isDarkMode,
+                                    onToggleDarkMode = { enabled ->
+                                        isDarkMode = enabled
+                                        tokenManager.saveDarkMode(enabled)
+                                    },
+                                    onModuleClick = { module ->
+                                        currentScreen = Screen.ModuleDetail(module)
+                                    },
+                                    onLogout = {
+                                        authRepository.logout()
+                                        currentUser = null
+                                        currentScreen = Screen.Login
+                                    }
+                                )
+                            }
                         } ?: run {
                             currentScreen = Screen.Login
                         }
@@ -117,7 +122,17 @@ class MainActivity : ComponentActivity() {
                     }
                     is Screen.TeacherProgress -> {
                         TeacherProgressScreen(
-                            onBack = { currentScreen = Screen.Dashboard }
+                            user = currentUser,
+                            isDarkMode = isDarkMode,
+                            onToggleDarkMode = { enabled ->
+                                isDarkMode = enabled
+                                tokenManager.saveDarkMode(enabled)
+                            },
+                            onLogout = {
+                                authRepository.logout()
+                                currentUser = null
+                                currentScreen = Screen.Login
+                            }
                         )
                     }
                 }

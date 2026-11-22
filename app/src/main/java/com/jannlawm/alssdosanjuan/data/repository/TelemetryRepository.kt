@@ -9,6 +9,7 @@ import com.jannlawm.alssdosanjuan.data.model.SyncGameScoresRequest
 import com.jannlawm.alssdosanjuan.data.model.SyncProgressRequest
 import com.jannlawm.alssdosanjuan.data.model.TelemetryItem
 import com.jannlawm.alssdosanjuan.data.remote.ApiClient
+import com.jannlawm.alssdosanjuan.data.remote.ApiService
 import com.jannlawm.alssdosanjuan.data.worker.SyncWorker
 import androidx.work.Constraints
 import androidx.work.ExistingWorkPolicy
@@ -23,9 +24,10 @@ import java.util.Date
 import java.util.Locale
 import java.util.TimeZone
 
-class TelemetryRepository(context: Context) {
+class TelemetryRepository(private val context: Context) {
     private val dbHelper = AppDbHelper(context)
-    private val apiService = ApiClient.getApiService(context)
+    private val apiService: ApiService
+        get() = ApiClient.getApiService(context)
     private val appContext = context.applicationContext
 
     suspend fun saveModuleGameScore(
