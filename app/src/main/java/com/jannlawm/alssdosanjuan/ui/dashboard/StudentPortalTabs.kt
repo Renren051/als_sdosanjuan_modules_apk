@@ -612,3 +612,4 @@ private fun formatStorageSize(bytes: Long): String {
         else -> String.format(Locale.US, "%.2f MB", bytes / (1024.0 * 1024.0))
     }
 }
+

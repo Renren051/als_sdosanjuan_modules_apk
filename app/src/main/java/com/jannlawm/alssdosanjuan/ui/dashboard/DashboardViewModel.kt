@@ -1,4 +1,4 @@
-﻿package com.jannlawm.alssdosanjuan.ui.dashboard
+package com.jannlawm.alssdosanjuan.ui.dashboard
 
 import android.app.Application
 import android.net.Uri

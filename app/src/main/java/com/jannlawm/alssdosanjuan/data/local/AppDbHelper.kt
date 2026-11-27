@@ -1,4 +1,4 @@
-﻿package com.jannlawm.alssdosanjuan.data.local
+package com.jannlawm.alssdosanjuan.data.local
 
 import android.content.ContentValues
 import android.content.Context
