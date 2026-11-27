@@ -48,6 +48,8 @@ import com.jannlawm.alssdosanjuan.ui.dashboard.AnnouncementCard
 import com.jannlawm.alssdosanjuan.ui.theme.DepEdBlue
 import com.jannlawm.alssdosanjuan.ui.theme.DepEdRed
 import com.jannlawm.alssdosanjuan.ui.theme.DepEdYellow
+import com.jannlawm.alssdosanjuan.ui.theme.brandAccentGreen
+import com.jannlawm.alssdosanjuan.ui.theme.isDark
 import kotlinx.coroutines.delay
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -196,6 +198,10 @@ fun TeacherProgressScreen(
                     .padding(horizontal = 16.dp)
             ) {
                 // Header Metric Summary Cards
+                val accentBlue = MaterialTheme.colorScheme.primary
+                val accentGreen = MaterialTheme.colorScheme.brandAccentGreen
+                val accentGold = if (MaterialTheme.colorScheme.isDark) DepEdYellow else Color(0xFFB45309)
+
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -206,21 +212,21 @@ fun TeacherProgressScreen(
                         title = "My Students",
                         value = "${state.students.size}",
                         icon = Icons.Outlined.People,
-                        color = DepEdBlue,
+                        color = accentBlue,
                         modifier = Modifier.weight(1f)
                     )
                     MetricMiniCard(
                         title = "Enrolled",
                         value = "${state.students.count { it.enrollment_status.equals("enrolled", ignoreCase = true) }}",
                         icon = Icons.Outlined.CheckCircle,
-                        color = Color(0xFF10B981),
+                        color = accentGreen,
                         modifier = Modifier.weight(1f)
                     )
                     MetricMiniCard(
                         title = "Completed",
                         value = "${state.students.sumOf { it.completed_count }}",
                         icon = Icons.Outlined.School,
-                        color = DepEdYellow,
+                        color = accentGold,
                         modifier = Modifier.weight(1f)
                     )
                 }
@@ -229,7 +235,7 @@ fun TeacherProgressScreen(
                 TabRow(
                     selectedTabIndex = state.selectedTab,
                     containerColor = Color.Transparent,
-                    contentColor = DepEdBlue,
+                    contentColor = accentBlue,
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(bottom = 6.dp)
@@ -237,6 +243,8 @@ fun TeacherProgressScreen(
                     Tab(
                         selected = state.selectedTab == 0,
                         onClick = { progressViewModel.selectTab(0) },
+                        selectedContentColor = accentBlue,
+                        unselectedContentColor = MaterialTheme.colorScheme.onSurfaceVariant,
                         text = {
                             Row(verticalAlignment = Alignment.CenterVertically) {
                                 Icon(Icons.Outlined.People, contentDescription = null, modifier = Modifier.size(15.dp))
@@ -248,6 +256,8 @@ fun TeacherProgressScreen(
                     Tab(
                         selected = state.selectedTab == 1,
                         onClick = { progressViewModel.selectTab(1) },
+                        selectedContentColor = accentBlue,
+                        unselectedContentColor = MaterialTheme.colorScheme.onSurfaceVariant,
                         text = {
                             Row(verticalAlignment = Alignment.CenterVertically) {
                                 Icon(Icons.Outlined.MenuBook, contentDescription = null, modifier = Modifier.size(15.dp))
@@ -259,6 +269,8 @@ fun TeacherProgressScreen(
                     Tab(
                         selected = state.selectedTab == 2,
                         onClick = { progressViewModel.selectTab(2) },
+                        selectedContentColor = accentBlue,
+                        unselectedContentColor = MaterialTheme.colorScheme.onSurfaceVariant,
                         text = {
                             Row(verticalAlignment = Alignment.CenterVertically) {
                                 Icon(Icons.Outlined.Campaign, contentDescription = null, modifier = Modifier.size(15.dp))
@@ -281,7 +293,7 @@ fun TeacherProgressScreen(
                         Icon(
                             imageVector = Icons.Default.CloudDone,
                             contentDescription = null,
-                            tint = Color(0xFF10B981),
+                            tint = accentGreen,
                             modifier = Modifier.size(14.dp)
                         )
                         Spacer(Modifier.width(5.dp))
@@ -295,7 +307,7 @@ fun TeacherProgressScreen(
                         text = "Sync Now",
                         style = MaterialTheme.typography.labelSmall,
                         fontWeight = FontWeight.Bold,
-                        color = DepEdBlue,
+                        color = accentBlue,
                         modifier = Modifier.clickable {
                             progressViewModel.refresh(query = searchQuery, isPullToRefresh = true)
                         }
@@ -344,9 +356,9 @@ fun TeacherProgressScreen(
                 // Active Student Filter Banner (when filtering modules by student)
                 if (state.selectedTab == 1 && state.selectedStudentName != null) {
                     Surface(
-                        color = DepEdBlue.copy(alpha = 0.10f),
+                        color = accentBlue.copy(alpha = 0.12f),
                         shape = RoundedCornerShape(12.dp),
-                        border = BorderStroke(1.dp, DepEdBlue.copy(alpha = 0.3f)),
+                        border = BorderStroke(1.dp, accentBlue.copy(alpha = 0.35f)),
                         modifier = Modifier
                             .fillMaxWidth()
                             .padding(bottom = 8.dp)
@@ -362,13 +374,13 @@ fun TeacherProgressScreen(
                                 text = "Filtered to: ${state.selectedStudentName}",
                                 style = MaterialTheme.typography.labelMedium,
                                 fontWeight = FontWeight.Bold,
-                                color = DepEdBlue
+                                color = accentBlue
                             )
                             IconButton(
                                 onClick = { progressViewModel.clearStudentFilter() },
                                 modifier = Modifier.size(24.dp)
                             ) {
-                                Icon(Icons.Default.Close, contentDescription = "Clear filter", tint = DepEdBlue, modifier = Modifier.size(16.dp))
+                                Icon(Icons.Default.Close, contentDescription = "Clear filter", tint = accentBlue, modifier = Modifier.size(16.dp))
                             }
                         }
                     }
@@ -400,7 +412,7 @@ fun TeacherProgressScreen(
                             verticalArrangement = Arrangement.Center,
                             horizontalAlignment = Alignment.CenterHorizontally
                         ) {
-                            CircularProgressIndicator(color = DepEdBlue)
+                            CircularProgressIndicator(color = accentBlue)
                             Spacer(Modifier.height(12.dp))
                             Text(
                                 text = if (state.selectedTab == 0) "Loading assigned students…" else "Loading module telemetry…",
@@ -422,7 +434,7 @@ fun TeacherProgressScreen(
                             Spacer(Modifier.height(12.dp))
                             Button(
                                 onClick = { progressViewModel.refresh(query = searchQuery) },
-                                colors = ButtonDefaults.buttonColors(containerColor = DepEdBlue)
+                                colors = ButtonDefaults.buttonColors(containerColor = DepEdBlue, contentColor = Color.White)
                             ) {
                                 Text("Try again")
                             }
@@ -444,7 +456,7 @@ fun TeacherProgressScreen(
                                     imageVector = Icons.Outlined.People,
                                     contentDescription = null,
                                     modifier = Modifier.size(54.dp),
-                                    tint = DepEdBlue
+                                    tint = accentBlue
                                 )
                                 Spacer(Modifier.height(12.dp))
                                 Text(
@@ -494,7 +506,7 @@ fun TeacherProgressScreen(
                                     imageVector = Icons.Outlined.Campaign,
                                     contentDescription = null,
                                     modifier = Modifier.size(54.dp),
-                                    tint = DepEdBlue
+                                    tint = accentBlue
                                 )
                                 Spacer(Modifier.height(12.dp))
                                 Text("No Active Advisories", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
@@ -638,6 +650,10 @@ private fun StudentRosterCard(
                 .fillMaxWidth()
                 .padding(16.dp)
         ) {
+            val accentBlue = MaterialTheme.colorScheme.primary
+            val accentGreen = MaterialTheme.colorScheme.brandAccentGreen
+            val accentGold = if (MaterialTheme.colorScheme.isDark) DepEdYellow else Color(0xFFB45309)
+
             // Student Header Row
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -652,7 +668,7 @@ private fun StudentRosterCard(
                         modifier = Modifier
                             .size(42.dp)
                             .clip(CircleShape)
-                            .background(DepEdBlue.copy(alpha = 0.12f)),
+                            .background(accentBlue.copy(alpha = 0.16f)),
                         contentAlignment = Alignment.Center
                     ) {
                         val initials = student.full_name
@@ -664,7 +680,7 @@ private fun StudentRosterCard(
                         Text(
                             text = initials.ifBlank { "L" },
                             fontWeight = FontWeight.Bold,
-                            color = DepEdBlue,
+                            color = accentBlue,
                             fontSize = 14.sp
                         )
                     }
@@ -688,15 +704,15 @@ private fun StudentRosterCard(
                 // Track Badge
                 Surface(
                     shape = RoundedCornerShape(8.dp),
-                    color = DepEdBlue.copy(alpha = 0.10f),
-                    border = BorderStroke(1.dp, DepEdBlue.copy(alpha = 0.25f))
+                    color = accentBlue.copy(alpha = 0.14f),
+                    border = BorderStroke(1.dp, accentBlue.copy(alpha = 0.30f))
                 ) {
                     Text(
                         text = student.track_label ?: student.program_track ?: "ALS",
                         modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
                         style = MaterialTheme.typography.labelSmall,
                         fontWeight = FontWeight.Bold,
-                        color = DepEdBlue
+                        color = accentBlue
                     )
                 }
             }
@@ -730,7 +746,7 @@ private fun StudentRosterCard(
                         .weight(1f)
                         .height(8.dp)
                         .clip(RoundedCornerShape(99.dp)),
-                    color = DepEdBlue,
+                    color = accentBlue,
                     trackColor = MaterialTheme.colorScheme.surfaceVariant
                 )
                 Text(
@@ -747,7 +763,7 @@ private fun StudentRosterCard(
                 Text(
                     text = "Note: $remark",
                     style = MaterialTheme.typography.labelSmall,
-                    color = DepEdBlue,
+                    color = accentBlue,
                     maxLines = 2,
                     overflow = TextOverflow.Ellipsis
                 )
@@ -760,9 +776,9 @@ private fun StudentRosterCard(
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
                 Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                    CountPill(label = "Done", count = student.completed_count, color = Color(0xFF10B981))
-                    CountPill(label = "Reading", count = student.in_progress_count, color = DepEdBlue)
-                    CountPill(label = "Saved", count = student.downloaded_count, color = DepEdYellow)
+                    CountPill(label = "Done", count = student.completed_count, color = accentGreen)
+                    CountPill(label = "Reading", count = student.in_progress_count, color = accentBlue)
+                    CountPill(label = "Saved", count = student.downloaded_count, color = accentGold)
                 }
 
                 Row(verticalAlignment = Alignment.CenterVertically) {
@@ -770,21 +786,21 @@ private fun StudentRosterCard(
                         onClick = onInspectStudent,
                         modifier = Modifier.size(32.dp)
                     ) {
-                        Icon(Icons.Default.Call, contentDescription = "Contact & Details", modifier = Modifier.size(16.dp), tint = Color(0xFF10B981))
+                        Icon(Icons.Default.Call, contentDescription = "Contact & Details", modifier = Modifier.size(16.dp), tint = accentGreen)
                     }
                     IconButton(
                         onClick = onShareSummary,
                         modifier = Modifier.size(32.dp)
                     ) {
-                        Icon(Icons.Default.Share, contentDescription = "Share Summary", modifier = Modifier.size(16.dp), tint = DepEdBlue)
+                        Icon(Icons.Default.Share, contentDescription = "Share Summary", modifier = Modifier.size(16.dp), tint = accentBlue)
                     }
                     TextButton(
                         onClick = onViewProgress,
                         contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp)
                     ) {
-                        Text("Telemetry", fontWeight = FontWeight.Bold, color = DepEdBlue, fontSize = 12.sp)
+                        Text("Telemetry", fontWeight = FontWeight.Bold, color = accentBlue, fontSize = 12.sp)
                         Spacer(Modifier.width(2.dp))
-                        Icon(Icons.AutoMirrored.Filled.ArrowForward, contentDescription = null, modifier = Modifier.size(14.dp), tint = DepEdBlue)
+                        Icon(Icons.AutoMirrored.Filled.ArrowForward, contentDescription = null, modifier = Modifier.size(14.dp), tint = accentBlue)
                     }
                 }
             }
@@ -829,7 +845,7 @@ private fun ProgressCard(progress: TeacherModuleProgress) {
                 LinearProgressIndicator(
                     progress = { progress.progress_percent.coerceIn(0, 100) / 100f },
                     modifier = Modifier.weight(1f).height(8.dp).clip(RoundedCornerShape(99.dp)),
-                    color = DepEdBlue,
+                    color = MaterialTheme.colorScheme.primary,
                     trackColor = MaterialTheme.colorScheme.surfaceVariant
                 )
                 Text("${progress.progress_percent}%", modifier = Modifier.padding(start = 10.dp), fontWeight = FontWeight.Bold)
@@ -848,7 +864,7 @@ private fun ProgressCard(progress: TeacherModuleProgress) {
                 Text(
                     "Latest educational game: ${progress.latest_game_score}/${progress.latest_game_max_score ?: 100}",
                     style = MaterialTheme.typography.labelMedium,
-                    color = DepEdBlue,
+                    color = MaterialTheme.colorScheme.primary,
                     fontWeight = FontWeight.Bold
                 )
             }

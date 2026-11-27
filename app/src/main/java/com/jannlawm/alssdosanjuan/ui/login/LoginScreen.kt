@@ -1,4 +1,4 @@
-﻿package com.jannlawm.alssdosanjuan.ui.login
+package com.jannlawm.alssdosanjuan.ui.login
 
 import androidx.compose.animation.Crossfade
 import com.jannlawm.alssdosanjuan.BuildConfig
