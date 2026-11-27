@@ -17,8 +17,11 @@ import androidx.compose.material.icons.filled.Clear
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.outlined.Book
+import androidx.compose.material.icons.outlined.Campaign
 import androidx.compose.material.icons.outlined.CloudDownload
 import androidx.compose.material.icons.outlined.DeleteOutline
+import androidx.compose.material.icons.outlined.MenuBook
+import androidx.compose.material.icons.outlined.Person
 import androidx.compose.material.icons.outlined.SearchOff
 import androidx.compose.material3.*
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
@@ -56,6 +59,7 @@ fun DashboardScreen(
     val state by dashboardViewModel.uiState.collectAsState()
     val context = LocalContext.current
     var moduleToDelete by remember { mutableStateOf<ModuleItem?>(null) }
+    val snackbarHostState = remember { SnackbarHostState() }
 
     LaunchedEffect(user.id) {
         dashboardViewModel.setUser(user)
@@ -63,6 +67,14 @@ fun DashboardScreen(
 
     LaunchedEffect(Unit) {
         dashboardViewModel.refreshDownloadedState()
+        dashboardViewModel.refreshStorageStats()
+    }
+
+    LaunchedEffect(state.portalNoticeMessage) {
+        state.portalNoticeMessage?.let { msg ->
+            snackbarHostState.showSnackbar(msg)
+            dashboardViewModel.clearPortalNotice()
+        }
     }
 
     moduleToDelete?.let { module ->
@@ -91,6 +103,42 @@ fun DashboardScreen(
     }
 
     Scaffold(
+        snackbarHost = { SnackbarHost(hostState = snackbarHostState) },
+        bottomBar = {
+            NavigationBar(
+                containerColor = MaterialTheme.colorScheme.surface,
+                tonalElevation = 6.dp
+            ) {
+                NavigationBarItem(
+                    selected = state.selectedBottomTab == 0,
+                    onClick = { dashboardViewModel.selectBottomTab(0) },
+                    icon = { Icon(Icons.Outlined.MenuBook, contentDescription = "Modules") },
+                    label = { Text("Modules", fontWeight = FontWeight.SemiBold) }
+                )
+                NavigationBarItem(
+                    selected = state.selectedBottomTab == 1,
+                    onClick = { dashboardViewModel.selectBottomTab(1) },
+                    icon = {
+                        BadgedBox(
+                            badge = {
+                                if (state.announcements.isNotEmpty()) {
+                                    Badge { Text("${state.announcements.size}") }
+                                }
+                            }
+                        ) {
+                            Icon(Icons.Outlined.Campaign, contentDescription = "Advisories")
+                        }
+                    },
+                    label = { Text("Advisories", fontWeight = FontWeight.SemiBold) }
+                )
+                NavigationBarItem(
+                    selected = state.selectedBottomTab == 2,
+                    onClick = { dashboardViewModel.selectBottomTab(2) },
+                    icon = { Icon(Icons.Outlined.Person, contentDescription = "My Profile") },
+                    label = { Text("My Profile", fontWeight = FontWeight.SemiBold) }
+                )
+            }
+        },
         topBar = {
             TopAppBar(
                 title = {
@@ -216,16 +264,86 @@ fun DashboardScreen(
     ) { paddingValues ->
         PullToRefreshBox(
             isRefreshing = state.isRefreshing,
-            onRefresh = { dashboardViewModel.refresh() },
+            onRefresh = {
+                when (state.selectedBottomTab) {
+                    1 -> dashboardViewModel.refreshAnnouncements()
+                    2 -> {
+                        dashboardViewModel.loadProfileAndDocuments()
+                        dashboardViewModel.refreshStorageStats()
+                    }
+                    else -> dashboardViewModel.refresh()
+                }
+            },
             modifier = Modifier
                 .fillMaxSize()
                 .padding(paddingValues)
         ) {
-            LazyColumn(
+            when (state.selectedBottomTab) {
+                1 -> StudentAdvisoriesContent(
+                    state = state,
+                    onRefreshAnnouncements = { dashboardViewModel.refreshAnnouncements() }
+                )
+                2 -> StudentProfileAndDocsContent(
+                    user = user,
+                    state = state,
+                    onRefreshProfile = {
+                        dashboardViewModel.loadProfileAndDocuments()
+                        dashboardViewModel.refreshStorageStats()
+                    },
+                    onUploadDocument = { docType, uri ->
+                        dashboardViewModel.uploadDocument(docType, uri)
+                    },
+                    onClearCompletedStorage = { dashboardViewModel.clearCompletedStorage() },
+                    onClearAllStorage = { dashboardViewModel.clearAllStorage() }
+                )
+                else -> LazyColumn(
                 modifier = Modifier.fillMaxSize(),
                 contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 12.dp, bottom = 88.dp),
                 verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
+                // Latest Division / CLC Advisory Banner (taps to Advisories tab)
+                state.announcements.firstOrNull()?.let { latest ->
+                    item {
+                        Surface(
+                            onClick = { dashboardViewModel.selectBottomTab(1) },
+                            color = DepEdYellow.copy(alpha = 0.16f),
+                            shape = RoundedCornerShape(14.dp),
+                            border = BorderStroke(1.dp, DepEdYellow.copy(alpha = 0.6f)),
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Row(
+                                modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Outlined.Campaign,
+                                    contentDescription = null,
+                                    tint = DepEdBlue,
+                                    modifier = Modifier.size(20.dp)
+                                )
+                                Spacer(Modifier.width(10.dp))
+                                Column(modifier = Modifier.weight(1f)) {
+                                    Text(
+                                        text = latest.title,
+                                        style = MaterialTheme.typography.labelLarge,
+                                        fontWeight = FontWeight.Bold,
+                                        color = MaterialTheme.colorScheme.onSurface,
+                                        maxLines = 1,
+                                        overflow = TextOverflow.Ellipsis
+                                    )
+                                    Text(
+                                        text = "${latest.clc_name ?: "Division Advisory"} · Tap to view all (${state.announcements.size})",
+                                        style = MaterialTheme.typography.labelSmall,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                        maxLines = 1,
+                                        overflow = TextOverflow.Ellipsis
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
+
                 // Offline Notice Banner
                 if (state.isOffline) {
                     item {
@@ -915,6 +1033,7 @@ fun DashboardScreen(
                         }
                     }
                 }
+            }
             }
         }
     }

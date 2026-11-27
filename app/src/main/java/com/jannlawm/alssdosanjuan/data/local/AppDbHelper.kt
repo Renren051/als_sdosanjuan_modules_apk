@@ -1,4 +1,4 @@
-﻿package com.jannlawm.alssdosanjuan.data.local
+package com.jannlawm.alssdosanjuan.data.local
 
 import android.content.ContentValues
 import android.content.Context
@@ -276,6 +276,20 @@ class AppDbHelper(context: Context) : SQLiteOpenHelper(context, "als_lms.db", nu
             }
         }
         return scores
+    }
+
+    fun getCompletedModuleIds(): Set<Int> {
+        val cursor = readableDatabase.rawQuery(
+            "SELECT module_id FROM telemetry_logs WHERE completion_status = 'completed'",
+            null
+        )
+        val ids = mutableSetOf<Int>()
+        cursor.use {
+            while (it.moveToNext()) {
+                ids.add(it.getInt(0))
+            }
+        }
+        return ids
     }
 
     fun markGameScoresAsSynced(attemptUuids: List<String>) {

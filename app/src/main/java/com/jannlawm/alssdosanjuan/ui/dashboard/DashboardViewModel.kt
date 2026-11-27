@@ -1,13 +1,18 @@
-﻿package com.jannlawm.alssdosanjuan.ui.dashboard
+package com.jannlawm.alssdosanjuan.ui.dashboard
 
 import android.app.Application
+import android.net.Uri
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.jannlawm.alssdosanjuan.data.local.TokenManager
+import com.jannlawm.alssdosanjuan.data.model.AnnouncementItem
+import com.jannlawm.alssdosanjuan.data.model.EnrollmentStatusDetail
 import com.jannlawm.alssdosanjuan.data.model.ModuleItem
 import com.jannlawm.alssdosanjuan.data.model.Strand
 import com.jannlawm.alssdosanjuan.data.model.User
+import com.jannlawm.alssdosanjuan.data.repository.LearnerPortalRepository
 import com.jannlawm.alssdosanjuan.data.repository.ModuleRepository
+import com.jannlawm.alssdosanjuan.data.repository.OfflineStorageStats
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -34,11 +39,20 @@ data class DashboardUiState(
     val errorMessage: String? = null,
     val user: User? = null,
     val downloadedModuleIds: Set<Int> = emptySet(),
-    val downloadingModuleIds: Set<Int> = emptySet()
+    val downloadingModuleIds: Set<Int> = emptySet(),
+    val selectedBottomTab: Int = 0, // 0 = Modules, 1 = Advisories, 2 = My Profile
+    val announcements: List<AnnouncementItem> = emptyList(),
+    val isLoadingAnnouncements: Boolean = false,
+    val enrollmentDetail: EnrollmentStatusDetail? = null,
+    val isLoadingProfile: Boolean = false,
+    val isUploadingDocument: Boolean = false,
+    val storageStats: OfflineStorageStats = OfflineStorageStats(),
+    val portalNoticeMessage: String? = null
 )
 
 class DashboardViewModel(application: Application) : AndroidViewModel(application) {
     private val moduleRepository = ModuleRepository(application)
+    private val portalRepository = LearnerPortalRepository(application)
     private val tokenManager = TokenManager(application)
 
     private val _uiState = MutableStateFlow(DashboardUiState())
@@ -127,16 +141,25 @@ class DashboardViewModel(application: Application) : AndroidViewModel(applicatio
 
             val currentLevel = _uiState.value.selectedLevel
 
-            // Parallel network fetch: run strands and modules concurrently
+            // Parallel network fetch: run strands, modules, announcements, and storage check concurrently
+            val clcId = _uiState.value.user?.latest_enrollment?.clc?.id
             val strandsDeferred = async(Dispatchers.IO) {
                 moduleRepository.fetchStrands(currentLevel)
             }
             val modulesDeferred = async(Dispatchers.IO) {
                 moduleRepository.fetchAndCacheModules(level = currentLevel)
             }
+            val announcementsDeferred = async(Dispatchers.IO) {
+                portalRepository.fetchAnnouncements(clcId)
+            }
+            val storageDeferred = async(Dispatchers.IO) {
+                portalRepository.getStorageStats()
+            }
 
             val strandsResult = strandsDeferred.await()
             val modulesResult = modulesDeferred.await()
+            val announcementsResult = announcementsDeferred.await()
+            val storageStats = storageDeferred.await()
 
             val loadedModules = modulesResult.getOrDefault(_uiState.value.allTrackModules)
             val isOffline = strandsResult.isFailure && modulesResult.isFailure
@@ -172,6 +195,8 @@ class DashboardViewModel(application: Application) : AndroidViewModel(applicatio
                     allTrackModules = loadedModules,
                     rawModules = loadedModules,
                     downloadedModuleIds = downloadedIds,
+                    announcements = announcementsResult.getOrDefault(state.announcements),
+                    storageStats = storageStats,
                     errorMessage = if (isOffline && loadedModules.isEmpty()) {
                         "You are currently offline. Download modules while connected to read them offline."
                     } else null
@@ -338,5 +363,110 @@ class DashboardViewModel(application: Application) : AndroidViewModel(applicatio
             )
         }
         applyLocalFilters()
+    }
+
+    fun selectBottomTab(tabIndex: Int) {
+        _uiState.update { it.copy(selectedBottomTab = tabIndex) }
+        if (tabIndex == 1 && _uiState.value.announcements.isEmpty()) {
+            refreshAnnouncements()
+        } else if (tabIndex == 2) {
+            refreshStorageStats()
+            if (_uiState.value.enrollmentDetail == null) {
+                loadProfileAndDocuments()
+            }
+        }
+    }
+
+    fun refreshAnnouncements() {
+        val clcId = _uiState.value.user?.latest_enrollment?.clc?.id
+        viewModelScope.launch {
+            _uiState.update { it.copy(isLoadingAnnouncements = true) }
+            portalRepository.fetchAnnouncements(clcId).fold(
+                onSuccess = { list ->
+                    _uiState.update { it.copy(announcements = list, isLoadingAnnouncements = false) }
+                },
+                onFailure = {
+                    _uiState.update { it.copy(isLoadingAnnouncements = false) }
+                }
+            )
+        }
+    }
+
+    fun loadProfileAndDocuments() {
+        viewModelScope.launch {
+            _uiState.update { it.copy(isLoadingProfile = true) }
+            portalRepository.fetchEnrollmentStatus().fold(
+                onSuccess = { detail ->
+                    _uiState.update { it.copy(enrollmentDetail = detail, isLoadingProfile = false) }
+                },
+                onFailure = { err ->
+                    _uiState.update {
+                        it.copy(
+                            isLoadingProfile = false,
+                            portalNoticeMessage = err.localizedMessage ?: "Could not load profile details."
+                        )
+                    }
+                }
+            )
+        }
+    }
+
+    fun uploadDocument(docType: String, fileUri: Uri) {
+        viewModelScope.launch {
+            _uiState.update { it.copy(isUploadingDocument = true, portalNoticeMessage = null) }
+            portalRepository.uploadDocument(docType, fileUri).fold(
+                onSuccess = { message ->
+                    _uiState.update { it.copy(isUploadingDocument = false, portalNoticeMessage = message) }
+                    loadProfileAndDocuments()
+                },
+                onFailure = { err ->
+                    _uiState.update {
+                        it.copy(
+                            isUploadingDocument = false,
+                            portalNoticeMessage = err.localizedMessage ?: "Document upload failed."
+                        )
+                    }
+                }
+            )
+        }
+    }
+
+    fun refreshStorageStats() {
+        viewModelScope.launch {
+            val stats = portalRepository.getStorageStats()
+            _uiState.update { it.copy(storageStats = stats) }
+        }
+    }
+
+    fun clearCompletedStorage() {
+        viewModelScope.launch {
+            val count = portalRepository.clearCompletedModules()
+            val stats = portalRepository.getStorageStats()
+            refreshDownloadedState()
+            _uiState.update {
+                it.copy(
+                    storageStats = stats,
+                    portalNoticeMessage = if (count > 0) "Removed $count completed module PDF(s) to free storage." else "No completed module PDFs found to clear."
+                )
+            }
+        }
+    }
+
+    fun clearAllStorage() {
+        viewModelScope.launch {
+            val count = portalRepository.clearAllDownloadedModules()
+            val stats = portalRepository.getStorageStats()
+            refreshDownloadedState()
+            _uiState.update {
+                it.copy(
+                    storageStats = stats,
+                    portalNoticeMessage = if (count > 0) "Cleared all $count downloaded module PDF(s)." else "Offline cache is already empty."
+                )
+            }
+        }
+    }
+
+    fun clearPortalNotice() {
+        _uiState.update { it.copy(portalNoticeMessage = null) }
     }
 }
