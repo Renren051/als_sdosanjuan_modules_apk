@@ -3,19 +3,25 @@ package com.jannlawm.alssdosanjuan.ui.teacherprogress
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material.icons.automirrored.filled.Logout
+import androidx.compose.material.icons.filled.Call
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.CloudDone
 import androidx.compose.material.icons.filled.DarkMode
 import androidx.compose.material.icons.filled.LightMode
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.filled.Share
+import androidx.compose.material.icons.outlined.Campaign
 import androidx.compose.material.icons.outlined.CheckCircle
 import androidx.compose.material.icons.outlined.MenuBook
 import androidx.compose.material.icons.outlined.People
@@ -27,8 +33,10 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -36,6 +44,7 @@ import com.jannlawm.alssdosanjuan.R
 import com.jannlawm.alssdosanjuan.data.model.TeacherModuleProgress
 import com.jannlawm.alssdosanjuan.data.model.TeacherStudentItem
 import com.jannlawm.alssdosanjuan.data.model.User
+import com.jannlawm.alssdosanjuan.ui.dashboard.AnnouncementCard
 import com.jannlawm.alssdosanjuan.ui.theme.DepEdBlue
 import com.jannlawm.alssdosanjuan.ui.theme.DepEdRed
 import com.jannlawm.alssdosanjuan.ui.theme.DepEdYellow
@@ -53,10 +62,31 @@ fun TeacherProgressScreen(
     val state by progressViewModel.uiState.collectAsState()
     var searchQuery by remember { mutableStateOf("") }
     var showLogoutDialog by remember { mutableStateOf(false) }
+    val snackbarHostState = remember { SnackbarHostState() }
+    val context = LocalContext.current
 
     LaunchedEffect(searchQuery) {
         delay(300)
         progressViewModel.refresh(query = searchQuery)
+    }
+
+    LaunchedEffect(state.noticeMessage) {
+        state.noticeMessage?.let { msg ->
+            snackbarHostState.showSnackbar(msg)
+            progressViewModel.clearNotice()
+        }
+    }
+
+    state.inspectedStudent?.let { inspected ->
+        TeacherStudentDetailSheet(
+            student = inspected,
+            isSavingRemark = state.isSavingRemark,
+            onDismiss = { progressViewModel.closeStudentDetail() },
+            onSaveRemark = { learnerId, remarks ->
+                progressViewModel.saveStudentRemark(learnerId, remarks)
+            },
+            onViewTelemetry = { progressViewModel.filterByStudent(inspected) }
+        )
     }
 
     if (showLogoutDialog) {
@@ -83,6 +113,7 @@ fun TeacherProgressScreen(
     }
 
     Scaffold(
+        snackbarHost = { SnackbarHost(hostState = snackbarHostState) },
         topBar = {
             TopAppBar(
                 title = {
@@ -194,23 +225,23 @@ fun TeacherProgressScreen(
                     )
                 }
 
-                // Segmented Tabs: "My Students" vs "Module Telemetry"
+                // Segmented Tabs: "Students", "Telemetry", "Advisories"
                 TabRow(
                     selectedTabIndex = state.selectedTab,
                     containerColor = Color.Transparent,
                     contentColor = DepEdBlue,
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(bottom = 8.dp)
+                        .padding(bottom = 6.dp)
                 ) {
                     Tab(
                         selected = state.selectedTab == 0,
                         onClick = { progressViewModel.selectTab(0) },
                         text = {
                             Row(verticalAlignment = Alignment.CenterVertically) {
-                                Icon(Icons.Outlined.People, contentDescription = null, modifier = Modifier.size(16.dp))
-                                Spacer(Modifier.width(6.dp))
-                                Text("My Students (${state.students.size})", fontWeight = FontWeight.Bold)
+                                Icon(Icons.Outlined.People, contentDescription = null, modifier = Modifier.size(15.dp))
+                                Spacer(Modifier.width(4.dp))
+                                Text("Students (${state.students.size})", fontWeight = FontWeight.Bold, fontSize = 12.sp, maxLines = 1)
                             }
                         }
                     )
@@ -219,12 +250,95 @@ fun TeacherProgressScreen(
                         onClick = { progressViewModel.selectTab(1) },
                         text = {
                             Row(verticalAlignment = Alignment.CenterVertically) {
-                                Icon(Icons.Outlined.MenuBook, contentDescription = null, modifier = Modifier.size(16.dp))
-                                Spacer(Modifier.width(6.dp))
-                                Text("Module Telemetry (${state.rows.size})", fontWeight = FontWeight.Bold)
+                                Icon(Icons.Outlined.MenuBook, contentDescription = null, modifier = Modifier.size(15.dp))
+                                Spacer(Modifier.width(4.dp))
+                                Text("Telemetry (${state.rows.size})", fontWeight = FontWeight.Bold, fontSize = 12.sp, maxLines = 1)
                             }
                         }
                     )
+                    Tab(
+                        selected = state.selectedTab == 2,
+                        onClick = { progressViewModel.selectTab(2) },
+                        text = {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Icon(Icons.Outlined.Campaign, contentDescription = null, modifier = Modifier.size(15.dp))
+                                Spacer(Modifier.width(4.dp))
+                                Text("Advisories (${state.announcements.size})", fontWeight = FontWeight.Bold, fontSize = 12.sp, maxLines = 1)
+                            }
+                        }
+                    )
+                }
+
+                // Sync Status Indicator Strip
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(bottom = 6.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(
+                            imageVector = Icons.Default.CloudDone,
+                            contentDescription = null,
+                            tint = Color(0xFF10B981),
+                            modifier = Modifier.size(14.dp)
+                        )
+                        Spacer(Modifier.width(5.dp))
+                        Text(
+                            text = state.lastSyncedLabel?.let { "Last synced at $it" } ?: "Ready to sync",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                    Text(
+                        text = "Sync Now",
+                        style = MaterialTheme.typography.labelSmall,
+                        fontWeight = FontWeight.Bold,
+                        color = DepEdBlue,
+                        modifier = Modifier.clickable {
+                            progressViewModel.refresh(query = searchQuery, isPullToRefresh = true)
+                        }
+                    )
+                }
+
+                // CLC Filter Chips (when viewing Students tab and CLCs exist)
+                if (state.selectedTab == 0 && state.availableClcs.isNotEmpty()) {
+                    LazyRow(
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(bottom = 8.dp)
+                    ) {
+                        item {
+                            FilterChip(
+                                selected = state.selectedClcName == null,
+                                onClick = { progressViewModel.filterByClc(null) },
+                                label = { Text("All CLCs (${state.rawStudents.size})", fontSize = 12.sp) },
+                                shape = RoundedCornerShape(10.dp),
+                                colors = FilterChipDefaults.filterChipColors(
+                                    selectedContainerColor = DepEdBlue,
+                                    selectedLabelColor = Color.White
+                                )
+                            )
+                        }
+                        items(state.availableClcs) { clc ->
+                            FilterChip(
+                                selected = state.selectedClcName == clc,
+                                onClick = {
+                                    progressViewModel.filterByClc(
+                                        if (state.selectedClcName == clc) null else clc
+                                    )
+                                },
+                                label = { Text(clc, fontSize = 12.sp, maxLines = 1, overflow = TextOverflow.Ellipsis) },
+                                shape = RoundedCornerShape(10.dp),
+                                colors = FilterChipDefaults.filterChipColors(
+                                    selectedContainerColor = DepEdBlue,
+                                    selectedLabelColor = Color.White
+                                )
+                            )
+                        }
+                    }
                 }
 
                 // Active Student Filter Banner (when filtering modules by student)
@@ -260,20 +374,22 @@ fun TeacherProgressScreen(
                     }
                 }
 
-                // Search Bar
-                OutlinedTextField(
-                    value = searchQuery,
-                    onValueChange = { searchQuery = it },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(bottom = 8.dp),
-                    leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
-                    placeholder = {
-                        Text(if (state.selectedTab == 0) "Search student name, LRN, track, or CLC" else "Search module title, strand, or student")
-                    },
-                    singleLine = true,
-                    shape = RoundedCornerShape(14.dp)
-                )
+                // Search Bar (Students & Telemetry tabs)
+                if (state.selectedTab != 2) {
+                    OutlinedTextField(
+                        value = searchQuery,
+                        onValueChange = { searchQuery = it },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(bottom = 8.dp),
+                        leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
+                        placeholder = {
+                            Text(if (state.selectedTab == 0) "Search student name, LRN, track, or CLC" else "Search module title, strand, or student")
+                        },
+                        singleLine = true,
+                        shape = RoundedCornerShape(14.dp)
+                    )
+                }
 
                 when {
                     state.isLoading -> {
@@ -354,8 +470,51 @@ fun TeacherProgressScreen(
                                 items(state.students, key = { it.id }) { student ->
                                     StudentRosterCard(
                                         student = student,
-                                        onViewProgress = { progressViewModel.filterByStudent(student) }
+                                        onInspectStudent = { progressViewModel.openStudentDetail(student) },
+                                        onViewProgress = { progressViewModel.filterByStudent(student) },
+                                        onShareSummary = { shareStudentSummary(context, student) }
                                     )
+                                }
+                            }
+                        }
+                    }
+
+                    // TAB 2: DIVISION & CLC ADVISORIES
+                    state.selectedTab == 2 -> {
+                        if (state.announcements.isEmpty()) {
+                            Column(
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .fillMaxWidth()
+                                    .padding(24.dp),
+                                verticalArrangement = Arrangement.Center,
+                                horizontalAlignment = Alignment.CenterHorizontally
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Outlined.Campaign,
+                                    contentDescription = null,
+                                    modifier = Modifier.size(54.dp),
+                                    tint = DepEdBlue
+                                )
+                                Spacer(Modifier.height(12.dp))
+                                Text("No Active Advisories", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                                Spacer(Modifier.height(4.dp))
+                                Text(
+                                    "SDO San Juan division notices and teacher memos will appear here.",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+                        } else {
+                            LazyColumn(
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .fillMaxWidth(),
+                                contentPadding = PaddingValues(top = 4.dp, bottom = 24.dp),
+                                verticalArrangement = Arrangement.spacedBy(10.dp)
+                            ) {
+                                items(state.announcements, key = { it.id }) { item ->
+                                    AnnouncementCard(item)
                                 }
                             }
                         }
@@ -461,10 +620,14 @@ private fun MetricMiniCard(
 @Composable
 private fun StudentRosterCard(
     student: TeacherStudentItem,
-    onViewProgress: () -> Unit
+    onInspectStudent: () -> Unit,
+    onViewProgress: () -> Unit,
+    onShareSummary: () -> Unit
 ) {
     Card(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable { onInspectStudent() },
         shape = RoundedCornerShape(18.dp),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
@@ -578,8 +741,19 @@ private fun StudentRosterCard(
                 )
             }
 
-            // Stats Row & Action Button
-            Spacer(Modifier.height(12.dp))
+            // Stats Row & Action Buttons
+            student.remarks?.takeIf { it.isNotBlank() }?.let { remark ->
+                Spacer(Modifier.height(8.dp))
+                Text(
+                    text = "Note: $remark",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = DepEdBlue,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis
+                )
+            }
+
+            Spacer(Modifier.height(10.dp))
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically,
@@ -591,13 +765,27 @@ private fun StudentRosterCard(
                     CountPill(label = "Saved", count = student.downloaded_count, color = DepEdYellow)
                 }
 
-                TextButton(
-                    onClick = onViewProgress,
-                    contentPadding = PaddingValues(horizontal = 12.dp, vertical = 4.dp)
-                ) {
-                    Text("Telemetry", fontWeight = FontWeight.Bold, color = DepEdBlue, fontSize = 12.sp)
-                    Spacer(Modifier.width(4.dp))
-                    Icon(Icons.AutoMirrored.Filled.ArrowForward, contentDescription = null, modifier = Modifier.size(14.dp), tint = DepEdBlue)
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    IconButton(
+                        onClick = onInspectStudent,
+                        modifier = Modifier.size(32.dp)
+                    ) {
+                        Icon(Icons.Default.Call, contentDescription = "Contact & Details", modifier = Modifier.size(16.dp), tint = Color(0xFF10B981))
+                    }
+                    IconButton(
+                        onClick = onShareSummary,
+                        modifier = Modifier.size(32.dp)
+                    ) {
+                        Icon(Icons.Default.Share, contentDescription = "Share Summary", modifier = Modifier.size(16.dp), tint = DepEdBlue)
+                    }
+                    TextButton(
+                        onClick = onViewProgress,
+                        contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp)
+                    ) {
+                        Text("Telemetry", fontWeight = FontWeight.Bold, color = DepEdBlue, fontSize = 12.sp)
+                        Spacer(Modifier.width(2.dp))
+                        Icon(Icons.AutoMirrored.Filled.ArrowForward, contentDescription = null, modifier = Modifier.size(14.dp), tint = DepEdBlue)
+                    }
                 }
             }
         }

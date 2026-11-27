@@ -1,6 +1,8 @@
 package com.jannlawm.alssdosanjuan.data.remote
 
 import com.jannlawm.alssdosanjuan.data.model.*
+import okhttp3.MultipartBody
+import okhttp3.RequestBody
 import okhttp3.ResponseBody
 import retrofit2.Response
 import retrofit2.http.*
@@ -59,5 +61,28 @@ interface ApiService {
         @Query("learner_id") learnerId: Int? = null,
         @Query("q") query: String? = null
     ): Response<TeacherModuleProgressResponse>
+
+    @POST("teacher/students/{learnerId}/remarks")
+    suspend fun saveTeacherStudentRemark(
+        @Path("learnerId") learnerId: Int,
+        @Body request: SaveRemarkRequest
+    ): Response<SaveRemarkResponse>
+
+    // 4. Announcements & Learner Profile / Documents
+    @GET("announcements")
+    suspend fun getAnnouncements(
+        @Query("clc_id") clcId: Int? = null,
+        @Query("audience") audience: String? = null
+    ): Response<AnnouncementsResponse>
+
+    @GET("learner/enrollment-status")
+    suspend fun getEnrollmentStatus(): Response<EnrollmentStatusResponse>
+
+    @Multipart
+    @POST("learner/documents/upload")
+    suspend fun uploadDocument(
+        @Part("document_type") documentType: RequestBody,
+        @Part document_file: MultipartBody.Part
+    ): Response<DocumentUploadResponse>
 
 }

@@ -1,6 +1,8 @@
 package com.jannlawm.alssdosanjuan.data.repository
 
 import android.content.Context
+import com.jannlawm.alssdosanjuan.data.model.AnnouncementItem
+import com.jannlawm.alssdosanjuan.data.model.SaveRemarkRequest
 import com.jannlawm.alssdosanjuan.data.model.TeacherModuleProgress
 import com.jannlawm.alssdosanjuan.data.model.TeacherProgressMeta
 import com.jannlawm.alssdosanjuan.data.model.TeacherStudentItem
@@ -44,6 +46,34 @@ class TeacherProgressRepository(private val context: Context) {
                 Result.success(ProgressPage(body.data, body.meta ?: TeacherProgressMeta()))
             } else {
                 Result.failure(Exception("Could not load learner progress (${response.code()})."))
+            }
+        } catch (error: Exception) {
+            Result.failure(error)
+        }
+    }
+
+    suspend fun fetchAnnouncements(): Result<List<AnnouncementItem>> = withContext(Dispatchers.IO) {
+        try {
+            val response = apiService.getAnnouncements(audience = "teachers")
+            val body = response.body()
+            if (response.isSuccessful && body?.success == true) {
+                Result.success(body.data)
+            } else {
+                Result.failure(Exception("Could not load announcements (${response.code()})."))
+            }
+        } catch (error: Exception) {
+            Result.failure(error)
+        }
+    }
+
+    suspend fun saveStudentRemark(learnerId: Int, remarks: String): Result<String> = withContext(Dispatchers.IO) {
+        try {
+            val response = apiService.saveTeacherStudentRemark(learnerId, SaveRemarkRequest(remarks))
+            val body = response.body()
+            if (response.isSuccessful && body?.success == true) {
+                Result.success(body.message ?: "Evaluation remarks saved.")
+            } else {
+                Result.failure(Exception("Could not save remarks (${response.code()})."))
             }
         } catch (error: Exception) {
             Result.failure(error)
