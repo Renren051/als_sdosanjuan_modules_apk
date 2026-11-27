@@ -1,4 +1,4 @@
-﻿package com.jannlawm.alssdosanjuan.ui.module
+package com.jannlawm.alssdosanjuan.ui.module
 
 import android.content.Intent
 import android.widget.Toast
