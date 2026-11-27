@@ -1,6 +1,7 @@
 ﻿package com.jannlawm.alssdosanjuan.ui.login
 
 import androidx.compose.animation.Crossfade
+import com.jannlawm.alssdosanjuan.BuildConfig
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
@@ -430,7 +431,7 @@ fun LoginScreen(
 
                     // Footer Note
                     Text(
-                        text = "Alternative Learning System \u2022 San Juan City\nOffline Reading & Telemetry Synchronized",
+                        text = "Alternative Learning System \u2022 San Juan City\nv${BuildConfig.VERSION_NAME} \u2022 Offline Reading & Telemetry Synchronized",
                         style = MaterialTheme.typography.labelSmall,
                         color = Color.White.copy(alpha = 0.50f),
                         textAlign = TextAlign.Center,
