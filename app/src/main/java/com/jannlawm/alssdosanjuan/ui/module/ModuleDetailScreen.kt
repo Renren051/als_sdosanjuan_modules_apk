@@ -1,4 +1,4 @@
-﻿package com.jannlawm.alssdosanjuan.ui.module
+package com.jannlawm.alssdosanjuan.ui.module
 
 import android.content.Intent
 import android.widget.Toast
@@ -169,8 +169,10 @@ fun ModuleDetailScreen(
                         }
 
                         // Page Counter Indicator
+                        val accentBlue = MaterialTheme.colorScheme.primary
+                        val accentRed = MaterialTheme.colorScheme.tertiary
                         Surface(
-                            color = DepEdBlue.copy(alpha = 0.1f),
+                            color = accentBlue.copy(alpha = 0.14f),
                             shape = MaterialTheme.shapes.small
                         ) {
                             Text(
@@ -178,7 +180,7 @@ fun ModuleDetailScreen(
                                 modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
                                 style = MaterialTheme.typography.labelLarge,
                                 fontWeight = FontWeight.Bold,
-                                color = DepEdBlue
+                                color = accentBlue
                             )
                         }
 
@@ -253,28 +255,30 @@ fun ModuleDetailScreen(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                    val accentBlue = MaterialTheme.colorScheme.primary
+                    val accentRed = MaterialTheme.colorScheme.tertiary
                     Surface(
-                        color = DepEdBlue.copy(alpha = 0.12f),
+                        color = accentBlue.copy(alpha = 0.14f),
                         shape = MaterialTheme.shapes.small
                     ) {
                         Text(
                             text = module.sub_level ?: module.level.replace("_", " "),
                             modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
                             style = MaterialTheme.typography.labelSmall,
-                            color = DepEdBlue,
+                            color = accentBlue,
                             fontWeight = FontWeight.Bold
                         )
                     }
                     if (!module.language.isNullOrEmpty()) {
                         Surface(
-                            color = if (module.language == "Filipino") DepEdRed.copy(alpha = 0.12f) else DepEdBlue.copy(alpha = 0.12f),
+                            color = if (module.language == "Filipino") accentRed.copy(alpha = 0.14f) else accentBlue.copy(alpha = 0.14f),
                             shape = MaterialTheme.shapes.small
                         ) {
                             Text(
                                 text = module.language,
                                 modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
                                 style = MaterialTheme.typography.labelSmall,
-                                color = if (module.language == "Filipino") DepEdRed else DepEdBlue,
+                                color = if (module.language == "Filipino") accentRed else accentBlue,
                                 fontWeight = FontWeight.Bold
                             )
                         }
@@ -285,7 +289,7 @@ fun ModuleDetailScreen(
                     Text(
                         text = module.strand.code,
                         style = MaterialTheme.typography.labelSmall,
-                        color = Color.Gray,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                         fontWeight = FontWeight.Bold
                     )
                 }
@@ -296,7 +300,7 @@ fun ModuleDetailScreen(
                     onClick = { moduleDetailViewModel.downloadAndOpen(module.id, state.currentPage) },
                     enabled = !state.isDownloading,
                     modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = DepEdBlue)
+                    colors = ButtonDefaults.buttonColors(containerColor = DepEdBlue, contentColor = Color.White)
                 ) {
                     if (state.isDownloading) {
                         CircularProgressIndicator(
@@ -378,7 +382,7 @@ fun ModuleDetailScreen(
                         Spacer(modifier = Modifier.height(14.dp))
                         Button(
                             onClick = { moduleDetailViewModel.loadModule(module) },
-                            colors = ButtonDefaults.buttonColors(containerColor = DepEdBlue)
+                            colors = ButtonDefaults.buttonColors(containerColor = DepEdBlue, contentColor = Color.White)
                         ) {
                             Icon(Icons.Default.Refresh, contentDescription = null)
                             Spacer(modifier = Modifier.width(6.dp))

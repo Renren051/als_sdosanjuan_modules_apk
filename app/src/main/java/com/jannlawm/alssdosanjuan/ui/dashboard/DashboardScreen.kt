@@ -45,6 +45,7 @@ import com.jannlawm.alssdosanjuan.data.model.User
 import com.jannlawm.alssdosanjuan.ui.theme.DepEdBlue
 import com.jannlawm.alssdosanjuan.ui.theme.DepEdRed
 import com.jannlawm.alssdosanjuan.ui.theme.DepEdYellow
+import com.jannlawm.alssdosanjuan.ui.theme.isDark
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -105,6 +106,13 @@ fun DashboardScreen(
     Scaffold(
         snackbarHost = { SnackbarHost(hostState = snackbarHostState) },
         bottomBar = {
+            val navItemColors = NavigationBarItemDefaults.colors(
+                selectedIconColor = MaterialTheme.colorScheme.primary,
+                selectedTextColor = MaterialTheme.colorScheme.primary,
+                indicatorColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.16f),
+                unselectedIconColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                unselectedTextColor = MaterialTheme.colorScheme.onSurfaceVariant
+            )
             NavigationBar(
                 containerColor = MaterialTheme.colorScheme.surface,
                 tonalElevation = 6.dp
@@ -113,7 +121,8 @@ fun DashboardScreen(
                     selected = state.selectedBottomTab == 0,
                     onClick = { dashboardViewModel.selectBottomTab(0) },
                     icon = { Icon(Icons.Outlined.MenuBook, contentDescription = "Modules") },
-                    label = { Text("Modules", fontWeight = FontWeight.SemiBold) }
+                    label = { Text("Modules", fontWeight = FontWeight.SemiBold) },
+                    colors = navItemColors
                 )
                 NavigationBarItem(
                     selected = state.selectedBottomTab == 1,
@@ -129,13 +138,15 @@ fun DashboardScreen(
                             Icon(Icons.Outlined.Campaign, contentDescription = "Advisories")
                         }
                     },
-                    label = { Text("Advisories", fontWeight = FontWeight.SemiBold) }
+                    label = { Text("Advisories", fontWeight = FontWeight.SemiBold) },
+                    colors = navItemColors
                 )
                 NavigationBarItem(
                     selected = state.selectedBottomTab == 2,
                     onClick = { dashboardViewModel.selectBottomTab(2) },
                     icon = { Icon(Icons.Outlined.Person, contentDescription = "My Profile") },
-                    label = { Text("My Profile", fontWeight = FontWeight.SemiBold) }
+                    label = { Text("My Profile", fontWeight = FontWeight.SemiBold) },
+                    colors = navItemColors
                 )
             }
         },
@@ -318,7 +329,7 @@ fun DashboardScreen(
                                 Icon(
                                     imageVector = Icons.Outlined.Campaign,
                                     contentDescription = null,
-                                    tint = DepEdBlue,
+                                    tint = if (MaterialTheme.colorScheme.isDark) DepEdYellow else DepEdBlue,
                                     modifier = Modifier.size(20.dp)
                                 )
                                 Spacer(Modifier.width(10.dp))
@@ -479,7 +490,7 @@ fun DashboardScreen(
                             Icon(
                                 imageVector = Icons.Default.Search,
                                 contentDescription = null,
-                                tint = DepEdBlue
+                                tint = MaterialTheme.colorScheme.primary
                             )
                         },
                         trailingIcon = {
@@ -496,7 +507,7 @@ fun DashboardScreen(
                         singleLine = true,
                         shape = RoundedCornerShape(16.dp),
                         colors = OutlinedTextFieldDefaults.colors(
-                            focusedBorderColor = DepEdBlue,
+                            focusedBorderColor = MaterialTheme.colorScheme.primary,
                             unfocusedBorderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.4f)
                         )
                     )
@@ -514,7 +525,7 @@ fun DashboardScreen(
                                 text = "Learning Strands",
                                 style = MaterialTheme.typography.titleSmall,
                                 fontWeight = FontWeight.Bold,
-                                color = DepEdBlue
+                                color = MaterialTheme.colorScheme.primary
                             )
                             Text(
                                 text = "${state.strands.size} Strands",
@@ -591,14 +602,14 @@ fun DashboardScreen(
                                 text = if (user.isLearner) "Curriculum Filters" else "Track Sub-Levels",
                                 style = MaterialTheme.typography.titleSmall,
                                 fontWeight = FontWeight.Bold,
-                                color = DepEdBlue
+                                color = MaterialTheme.colorScheme.primary
                             )
                             if (state.selectedStrandId != null || state.selectedSubLevel != null || state.selectedLanguage != null || state.filterDownloadedOnly) {
                                 Text(
                                     text = "Reset All",
                                     style = MaterialTheme.typography.labelSmall,
                                     fontWeight = FontWeight.Bold,
-                                    color = DepEdRed,
+                                    color = MaterialTheme.colorScheme.tertiary,
                                     modifier = Modifier.clickable { dashboardViewModel.clearAllFilters() }
                                 )
                             }
@@ -738,7 +749,7 @@ fun DashboardScreen(
                             text = "Self-Learning Modules (${state.modules.size})",
                             style = MaterialTheme.typography.titleMedium,
                             fontWeight = FontWeight.ExtraBold,
-                            color = DepEdBlue
+                            color = MaterialTheme.colorScheme.primary
                         )
                     }
                 }
@@ -824,17 +835,19 @@ fun DashboardScreen(
                             ) {
                                 // Module Code Pill
                                 val codeText = module.module_number ?: "M-${module.id}"
+                                val accentRed = MaterialTheme.colorScheme.tertiary
+                                val accentBlue = MaterialTheme.colorScheme.primary
                                 Surface(
                                     shape = RoundedCornerShape(8.dp),
-                                    color = DepEdRed.copy(alpha = 0.10f),
-                                    border = BorderStroke(1.dp, DepEdRed.copy(alpha = 0.25f))
+                                    color = accentRed.copy(alpha = 0.12f),
+                                    border = BorderStroke(1.dp, accentRed.copy(alpha = 0.30f))
                                 ) {
                                     Text(
                                         text = codeText,
                                         modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp),
                                         style = MaterialTheme.typography.labelSmall,
                                         fontWeight = FontWeight.Black,
-                                        color = DepEdRed
+                                        color = accentRed
                                     )
                                 }
 
@@ -843,13 +856,13 @@ fun DashboardScreen(
                                     if (!module.language.isNullOrBlank()) {
                                         Surface(
                                             shape = RoundedCornerShape(8.dp),
-                                            color = DepEdBlue.copy(alpha = 0.10f)
+                                            color = accentBlue.copy(alpha = 0.14f)
                                         ) {
                                             Text(
                                                 text = module.language,
                                                 modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp),
                                                 style = MaterialTheme.typography.labelSmall,
-                                                color = DepEdBlue,
+                                                color = accentBlue,
                                                 fontWeight = FontWeight.Bold
                                             )
                                         }
@@ -904,6 +917,7 @@ fun DashboardScreen(
                                 horizontalArrangement = Arrangement.SpaceBetween,
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
+                                val accentBlue = MaterialTheme.colorScheme.primary
                                 val strandName = module.strand?.title ?: module.strand?.name ?: module.strand?.code ?: "Curriculum Strand"
                                 Row(
                                     modifier = Modifier.weight(1f).padding(end = 8.dp),
@@ -912,14 +926,14 @@ fun DashboardScreen(
                                     Icon(
                                         imageVector = Icons.Outlined.Book,
                                         contentDescription = null,
-                                        tint = DepEdBlue,
+                                        tint = accentBlue,
                                         modifier = Modifier.size(15.dp)
                                     )
                                     Spacer(modifier = Modifier.width(4.dp))
                                     Text(
                                         text = strandName,
                                         style = MaterialTheme.typography.labelMedium,
-                                        color = DepEdBlue,
+                                        color = accentBlue,
                                         fontWeight = FontWeight.SemiBold,
                                         maxLines = 1,
                                         overflow = TextOverflow.Ellipsis
@@ -942,7 +956,7 @@ fun DashboardScreen(
                                         shape = RoundedCornerShape(10.dp),
                                         color = when {
                                             isDownloaded -> Color(0xFF16A34A)
-                                            isDownloading -> Color(0xFFE2E8F0)
+                                            isDownloading -> MaterialTheme.colorScheme.surfaceVariant
                                             else -> MaterialTheme.colorScheme.surfaceVariant
                                         },
                                         contentColor = when {
@@ -964,7 +978,7 @@ fun DashboardScreen(
                                                 CircularProgressIndicator(
                                                     modifier = Modifier.size(14.dp),
                                                     strokeWidth = 2.dp,
-                                                    color = DepEdBlue
+                                                    color = accentBlue
                                                 )
                                                 Spacer(modifier = Modifier.width(6.dp))
                                                 Text(
@@ -991,14 +1005,14 @@ fun DashboardScreen(
                                                     imageVector = Icons.Outlined.CloudDownload,
                                                     contentDescription = "Download Module",
                                                     modifier = Modifier.size(16.dp),
-                                                    tint = DepEdBlue
+                                                    tint = accentBlue
                                                 )
                                                 Spacer(modifier = Modifier.width(5.dp))
                                                 Text(
                                                     text = "Download",
                                                     style = MaterialTheme.typography.labelSmall,
                                                     fontWeight = FontWeight.Bold,
-                                                    color = DepEdBlue
+                                                    color = accentBlue
                                                 )
                                             }
                                         }

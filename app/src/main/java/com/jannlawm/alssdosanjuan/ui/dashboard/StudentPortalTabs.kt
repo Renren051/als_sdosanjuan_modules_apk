@@ -42,6 +42,8 @@ import com.jannlawm.alssdosanjuan.data.model.User
 import com.jannlawm.alssdosanjuan.ui.theme.DepEdBlue
 import com.jannlawm.alssdosanjuan.ui.theme.DepEdRed
 import com.jannlawm.alssdosanjuan.ui.theme.DepEdYellow
+import com.jannlawm.alssdosanjuan.ui.theme.brandAccentGreen
+import com.jannlawm.alssdosanjuan.ui.theme.isDark
 import java.util.Locale
 
 private val REQUIRED_DOCUMENT_TYPES = listOf(
@@ -74,7 +76,7 @@ fun StudentAdvisoriesContent(
                         text = "Division & CLC Advisories",
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.ExtraBold,
-                        color = DepEdBlue
+                        color = MaterialTheme.colorScheme.primary
                     )
                     Text(
                         text = "Official DepEd SDO San Juan ALS updates",
@@ -83,7 +85,7 @@ fun StudentAdvisoriesContent(
                     )
                 }
                 IconButton(onClick = onRefreshAnnouncements) {
-                    Icon(Icons.Default.Refresh, contentDescription = "Refresh advisories", tint = DepEdBlue)
+                    Icon(Icons.Default.Refresh, contentDescription = "Refresh advisories", tint = MaterialTheme.colorScheme.primary)
                 }
             }
         }
@@ -96,7 +98,7 @@ fun StudentAdvisoriesContent(
                         .padding(48.dp),
                     contentAlignment = Alignment.Center
                 ) {
-                    CircularProgressIndicator(color = DepEdBlue)
+                    CircularProgressIndicator(color = MaterialTheme.colorScheme.primary)
                 }
             }
         } else if (state.announcements.isEmpty()) {
@@ -116,7 +118,7 @@ fun StudentAdvisoriesContent(
                             imageVector = Icons.Outlined.Campaign,
                             contentDescription = null,
                             modifier = Modifier.size(48.dp),
-                            tint = DepEdBlue
+                            tint = MaterialTheme.colorScheme.primary
                         )
                         Spacer(Modifier.height(10.dp))
                         Text("No Active Advisories", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
@@ -139,6 +141,9 @@ fun StudentAdvisoriesContent(
 
 @Composable
 fun AnnouncementCard(item: AnnouncementItem) {
+    val accentBlue = MaterialTheme.colorScheme.primary
+    val pinTextColor = if (MaterialTheme.colorScheme.isDark) DepEdYellow else Color(0xFF92400E)
+
     Card(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(18.dp),
@@ -161,14 +166,14 @@ fun AnnouncementCard(item: AnnouncementItem) {
             ) {
                 Surface(
                     shape = RoundedCornerShape(8.dp),
-                    color = DepEdBlue.copy(alpha = 0.10f)
+                    color = accentBlue.copy(alpha = 0.14f)
                 ) {
                     Text(
                         text = item.clc_name ?: "Division-Wide",
                         modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
                         style = MaterialTheme.typography.labelSmall,
                         fontWeight = FontWeight.Bold,
-                        color = DepEdBlue,
+                        color = accentBlue,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis
                     )
@@ -176,15 +181,15 @@ fun AnnouncementCard(item: AnnouncementItem) {
                 if (item.is_pinned) {
                     Surface(
                         shape = RoundedCornerShape(8.dp),
-                        color = DepEdYellow.copy(alpha = 0.25f)
+                        color = DepEdYellow.copy(alpha = 0.22f)
                     ) {
                         Row(
                             modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp),
                             verticalAlignment = Alignment.CenterVertically
                         ) {
-                            Icon(Icons.Default.PushPin, contentDescription = null, modifier = Modifier.size(12.dp), tint = Color(0xFF92400E))
+                            Icon(Icons.Default.PushPin, contentDescription = null, modifier = Modifier.size(12.dp), tint = pinTextColor)
                             Spacer(Modifier.width(4.dp))
-                            Text("Pinned", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold, color = Color(0xFF92400E))
+                            Text("Pinned", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold, color = pinTextColor)
                         }
                     }
                 }
@@ -198,7 +203,7 @@ fun AnnouncementCard(item: AnnouncementItem) {
                 Text(
                     text = item.subtitle,
                     style = MaterialTheme.typography.labelMedium,
-                    color = DepEdBlue,
+                    color = accentBlue,
                     fontWeight = FontWeight.SemiBold
                 )
             }
@@ -288,6 +293,9 @@ fun StudentProfileAndDocsContent(
     ) {
         // 1. ALS Learner Identity & CLC Assignment Card
         item {
+            val accentBlue = MaterialTheme.colorScheme.primary
+            val accentGreen = MaterialTheme.colorScheme.brandAccentGreen
+
             Card(
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(18.dp),
@@ -305,10 +313,10 @@ fun StudentProfileAndDocsContent(
                                 modifier = Modifier
                                     .size(44.dp)
                                     .clip(CircleShape)
-                                    .background(DepEdBlue.copy(alpha = 0.12f)),
+                                    .background(accentBlue.copy(alpha = 0.16f)),
                                 contentAlignment = Alignment.Center
                             ) {
-                                Icon(Icons.Outlined.Badge, contentDescription = null, tint = DepEdBlue)
+                                Icon(Icons.Outlined.Badge, contentDescription = null, tint = accentBlue)
                             }
                             Spacer(Modifier.width(12.dp))
                             Column {
@@ -321,7 +329,7 @@ fun StudentProfileAndDocsContent(
                             }
                         }
                         IconButton(onClick = onRefreshProfile) {
-                            Icon(Icons.Default.Refresh, contentDescription = "Refresh profile", tint = DepEdBlue)
+                            Icon(Icons.Default.Refresh, contentDescription = "Refresh profile", tint = accentBlue)
                         }
                     }
 
@@ -330,27 +338,27 @@ fun StudentProfileAndDocsContent(
                         val statusText = detail?.status_label ?: user.latest_enrollment?.enrollment_status?.replaceFirstChar { it.uppercase() } ?: "Enrolled"
                         Surface(
                             shape = RoundedCornerShape(8.dp),
-                            color = Color(0xFF10B981).copy(alpha = 0.14f)
+                            color = accentGreen.copy(alpha = 0.14f)
                         ) {
                             Text(
                                 text = statusText,
                                 modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
                                 style = MaterialTheme.typography.labelSmall,
                                 fontWeight = FontWeight.Bold,
-                                color = Color(0xFF047857)
+                                color = accentGreen
                             )
                         }
                         detail?.tracking_number?.let { trk ->
                             Surface(
                                 shape = RoundedCornerShape(8.dp),
-                                color = DepEdBlue.copy(alpha = 0.10f)
+                                color = accentBlue.copy(alpha = 0.14f)
                             ) {
                                 Text(
                                     text = trk,
                                     modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
                                     style = MaterialTheme.typography.labelSmall,
                                     fontWeight = FontWeight.Bold,
-                                    color = DepEdBlue
+                                    color = accentBlue
                                 )
                             }
                         }
@@ -361,7 +369,7 @@ fun StudentProfileAndDocsContent(
                     Spacer(Modifier.height(12.dp))
 
                     Row(verticalAlignment = Alignment.Top) {
-                        Icon(Icons.Outlined.LocationOn, contentDescription = null, tint = DepEdBlue, modifier = Modifier.size(18.dp))
+                        Icon(Icons.Outlined.LocationOn, contentDescription = null, tint = accentBlue, modifier = Modifier.size(18.dp))
                         Spacer(Modifier.width(8.dp))
                         Column {
                             Text("Community Learning Center", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
@@ -379,7 +387,7 @@ fun StudentProfileAndDocsContent(
                         horizontalArrangement = Arrangement.SpaceBetween
                     ) {
                         Row(verticalAlignment = Alignment.Top, modifier = Modifier.weight(1f)) {
-                            Icon(Icons.Outlined.Person, contentDescription = null, tint = DepEdBlue, modifier = Modifier.size(18.dp))
+                            Icon(Icons.Outlined.Person, contentDescription = null, tint = accentBlue, modifier = Modifier.size(18.dp))
                             Spacer(Modifier.width(8.dp))
                             Column {
                                 Text("Assigned Mobile Teacher", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
@@ -399,7 +407,7 @@ fun StudentProfileAndDocsContent(
                                         } catch (_: Exception) {}
                                     }
                                 ) {
-                                    Icon(Icons.Default.Call, contentDescription = "Call teacher", tint = Color(0xFF10B981))
+                                    Icon(Icons.Default.Call, contentDescription = "Call teacher", tint = accentGreen)
                                 }
                                 IconButton(
                                     onClick = {
@@ -408,7 +416,7 @@ fun StudentProfileAndDocsContent(
                                         } catch (_: Exception) {}
                                     }
                                 ) {
-                                    Icon(Icons.Default.Sms, contentDescription = "Text teacher", tint = DepEdBlue)
+                                    Icon(Icons.Default.Sms, contentDescription = "Text teacher", tint = accentBlue)
                                 }
                             }
                         }
@@ -427,14 +435,14 @@ fun StudentProfileAndDocsContent(
             ) {
                 Column(modifier = Modifier.fillMaxWidth().padding(16.dp)) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
-                        Icon(Icons.Outlined.Description, contentDescription = null, tint = DepEdBlue)
+                        Icon(Icons.Outlined.Description, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
                         Spacer(Modifier.width(8.dp))
                         Column(modifier = Modifier.weight(1f)) {
                             Text("Enrollment Documents", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
                             Text("Submit PDF or clear photo (up to 10MB)", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                         }
                         if (state.isUploadingDocument || state.isLoadingProfile) {
-                            CircularProgressIndicator(modifier = Modifier.size(20.dp), strokeWidth = 2.dp, color = DepEdBlue)
+                            CircularProgressIndicator(modifier = Modifier.size(20.dp), strokeWidth = 2.dp, color = MaterialTheme.colorScheme.primary)
                         }
                     }
 
@@ -473,7 +481,7 @@ fun StudentProfileAndDocsContent(
             ) {
                 Column(modifier = Modifier.fillMaxWidth().padding(16.dp)) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
-                        Icon(Icons.Outlined.Storage, contentDescription = null, tint = DepEdBlue)
+                        Icon(Icons.Outlined.Storage, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
                         Spacer(Modifier.width(8.dp))
                         Column {
                             Text("Offline Storage Manager", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
@@ -495,7 +503,7 @@ fun StudentProfileAndDocsContent(
                             enabled = state.storageStats.completedDeletableCount > 0,
                             modifier = Modifier.weight(1f),
                             shape = RoundedCornerShape(12.dp),
-                            colors = ButtonDefaults.buttonColors(containerColor = DepEdBlue)
+                            colors = ButtonDefaults.buttonColors(containerColor = DepEdBlue, contentColor = Color.White)
                         ) {
                             Icon(Icons.Default.DeleteSweep, contentDescription = null, modifier = Modifier.size(16.dp))
                             Spacer(Modifier.width(6.dp))
@@ -510,8 +518,8 @@ fun StudentProfileAndDocsContent(
                             onClick = { showClearAllDialog = true },
                             enabled = state.storageStats.totalFiles > 0,
                             shape = RoundedCornerShape(12.dp),
-                            border = BorderStroke(1.dp, DepEdRed.copy(alpha = 0.5f)),
-                            colors = ButtonDefaults.outlinedButtonColors(contentColor = DepEdRed)
+                            border = BorderStroke(1.dp, MaterialTheme.colorScheme.tertiary.copy(alpha = 0.6f)),
+                            colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.tertiary)
                         ) {
                             Text("Clear All", fontSize = 12.sp, fontWeight = FontWeight.Bold)
                         }
@@ -529,10 +537,15 @@ private fun DocumentChecklistRow(
     isUploading: Boolean,
     onUploadClick: () -> Unit
 ) {
+    val accentBlue = MaterialTheme.colorScheme.primary
+    val accentGreen = MaterialTheme.colorScheme.brandAccentGreen
+    val accentRed = MaterialTheme.colorScheme.tertiary
+    val accentAmber = if (MaterialTheme.colorScheme.isDark) Color(0xFFFBBF24) else Color(0xFFD97706)
+
     val statusColor = when (document?.verification_status) {
-        "verified" -> Color(0xFF10B981)
-        "pending" -> Color(0xFFF59E0B)
-        "needs_resubmission", "rejected" -> DepEdRed
+        "verified" -> accentGreen
+        "pending" -> accentAmber
+        "needs_resubmission", "rejected" -> accentRed
         else -> MaterialTheme.colorScheme.onSurfaceVariant
     }
     val statusText = when (document?.verification_status) {
@@ -576,29 +589,30 @@ private fun DocumentChecklistRow(
                 Text(
                     text = "Note: $note",
                     style = MaterialTheme.typography.labelSmall,
-                    color = DepEdRed,
+                    color = accentRed,
                     modifier = Modifier.padding(top = 2.dp)
                 )
             }
         }
 
         if (document?.verification_status == "verified") {
-            Icon(Icons.Default.CheckCircle, contentDescription = "Verified", tint = Color(0xFF10B981))
+            Icon(Icons.Default.CheckCircle, contentDescription = "Verified", tint = accentGreen)
         } else {
             OutlinedButton(
                 onClick = onUploadClick,
                 enabled = !isUploading,
                 contentPadding = PaddingValues(horizontal = 10.dp, vertical = 4.dp),
                 shape = RoundedCornerShape(10.dp),
+                border = BorderStroke(1.dp, accentBlue.copy(alpha = 0.6f)),
                 modifier = Modifier.height(32.dp)
             ) {
-                Icon(Icons.Default.CloudUpload, contentDescription = null, modifier = Modifier.size(14.dp), tint = DepEdBlue)
+                Icon(Icons.Default.CloudUpload, contentDescription = null, modifier = Modifier.size(14.dp), tint = accentBlue)
                 Spacer(Modifier.width(4.dp))
                 Text(
                     text = if (document == null) "Upload" else "Replace",
                     fontSize = 11.sp,
                     fontWeight = FontWeight.Bold,
-                    color = DepEdBlue
+                    color = accentBlue
                 )
             }
         }

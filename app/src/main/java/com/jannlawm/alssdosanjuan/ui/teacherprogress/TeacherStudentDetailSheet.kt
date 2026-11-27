@@ -27,6 +27,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.jannlawm.alssdosanjuan.data.model.TeacherStudentItem
 import com.jannlawm.alssdosanjuan.ui.theme.DepEdBlue
+import com.jannlawm.alssdosanjuan.ui.theme.brandAccentGreen
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -38,6 +39,8 @@ fun TeacherStudentDetailSheet(
     onViewTelemetry: () -> Unit
 ) {
     val context = LocalContext.current
+    val accentBlue = MaterialTheme.colorScheme.primary
+    val accentGreen = MaterialTheme.colorScheme.brandAccentGreen
     var remarkText by remember(student.id, student.remarks) {
         mutableStateOf(student.remarks.orEmpty())
     }
@@ -73,34 +76,34 @@ fun TeacherStudentDetailSheet(
                     )
                 }
                 IconButton(onClick = { shareStudentSummary(context, student) }) {
-                    Icon(Icons.Default.Share, contentDescription = "Share progress summary", tint = DepEdBlue)
+                    Icon(Icons.Default.Share, contentDescription = "Share progress summary", tint = accentBlue)
                 }
             }
 
             // Track + Demographic Badges
             Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                DetailBadge(student.track_label ?: student.program_track ?: "ALS", DepEdBlue)
+                DetailBadge(student.track_label ?: student.program_track ?: "ALS", accentBlue)
                 DetailBadge(
                     student.enrollment_status?.replaceFirstChar { it.uppercase() } ?: "Enrolled",
-                    Color(0xFF10B981)
+                    accentGreen
                 )
-                if (student.is_4ps_beneficiary) DetailBadge("4Ps", Color(0xFF7C3AED))
-                if (student.is_pwd) DetailBadge("PWD", Color(0xFFD97706))
-                if (student.is_ip) DetailBadge("IP", Color(0xFF0284C7))
+                if (student.is_4ps_beneficiary) DetailBadge("4Ps", Color(0xFFA78BFA))
+                if (student.is_pwd) DetailBadge("PWD", Color(0xFFFBBF24))
+                if (student.is_ip) DetailBadge("IP", Color(0xFF38BDF8))
             }
 
             // Contact Actions (Call / SMS)
             val primaryPhone = student.contact_number ?: student.emergency_contact_number
             Card(
                 shape = RoundedCornerShape(14.dp),
-                colors = CardDefaults.cardColors(containerColor = DepEdBlue.copy(alpha = 0.06f)),
-                border = BorderStroke(1.dp, DepEdBlue.copy(alpha = 0.2f))
+                colors = CardDefaults.cardColors(containerColor = accentBlue.copy(alpha = 0.08f)),
+                border = BorderStroke(1.dp, accentBlue.copy(alpha = 0.25f))
             ) {
                 Column(modifier = Modifier.fillMaxWidth().padding(14.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Text("Learner & Guardian Contact", style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Bold, color = DepEdBlue)
+                    Text("Learner & Guardian Contact", style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Bold, color = accentBlue)
 
                     Row(verticalAlignment = Alignment.Top) {
-                        Icon(Icons.Outlined.Home, contentDescription = null, modifier = Modifier.size(16.dp), tint = DepEdBlue)
+                        Icon(Icons.Outlined.Home, contentDescription = null, modifier = Modifier.size(16.dp), tint = accentBlue)
                         Spacer(Modifier.width(6.dp))
                         val addressParts = listOfNotNull(
                             student.street_address?.takeIf { it.isNotBlank() },
@@ -115,7 +118,7 @@ fun TeacherStudentDetailSheet(
 
                     if (!student.guardian_name.isNullOrBlank()) {
                         Row(verticalAlignment = Alignment.Top) {
-                            Icon(Icons.Outlined.People, contentDescription = null, modifier = Modifier.size(16.dp), tint = DepEdBlue)
+                            Icon(Icons.Outlined.People, contentDescription = null, modifier = Modifier.size(16.dp), tint = accentBlue)
                             Spacer(Modifier.width(6.dp))
                             Text(
                                 text = "Guardian: ${student.guardian_name}" +
@@ -143,7 +146,7 @@ fun TeacherStudentDetailSheet(
                                 },
                                 modifier = Modifier.weight(1f),
                                 shape = RoundedCornerShape(10.dp),
-                                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF10B981))
+                                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF10B981), contentColor = Color.White)
                             ) {
                                 Icon(Icons.Default.Call, contentDescription = null, modifier = Modifier.size(16.dp))
                                 Spacer(Modifier.width(6.dp))
@@ -157,11 +160,11 @@ fun TeacherStudentDetailSheet(
                                 },
                                 modifier = Modifier.weight(1f),
                                 shape = RoundedCornerShape(10.dp),
-                                border = BorderStroke(1.dp, DepEdBlue)
+                                border = BorderStroke(1.dp, accentBlue)
                             ) {
-                                Icon(Icons.Default.Sms, contentDescription = null, modifier = Modifier.size(16.dp), tint = DepEdBlue)
+                                Icon(Icons.Default.Sms, contentDescription = null, modifier = Modifier.size(16.dp), tint = accentBlue)
                                 Spacer(Modifier.width(6.dp))
-                                Text("Text (SMS)", fontWeight = FontWeight.Bold, color = DepEdBlue)
+                                Text("Text (SMS)", fontWeight = FontWeight.Bold, color = accentBlue)
                             }
                         }
                     } else {
@@ -195,7 +198,7 @@ fun TeacherStudentDetailSheet(
                     enabled = !isSavingRemark && remarkText.isNotBlank(),
                     modifier = Modifier.weight(1f),
                     shape = RoundedCornerShape(12.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = DepEdBlue)
+                    colors = ButtonDefaults.buttonColors(containerColor = DepEdBlue, contentColor = Color.White)
                 ) {
                     if (isSavingRemark) {
                         CircularProgressIndicator(modifier = Modifier.size(16.dp), strokeWidth = 2.dp, color = Color.White)
@@ -207,11 +210,12 @@ fun TeacherStudentDetailSheet(
                 }
                 OutlinedButton(
                     onClick = onViewTelemetry,
-                    shape = RoundedCornerShape(12.dp)
+                    shape = RoundedCornerShape(12.dp),
+                    border = BorderStroke(1.dp, accentBlue)
                 ) {
-                    Icon(Icons.Outlined.Analytics, contentDescription = null, modifier = Modifier.size(16.dp), tint = DepEdBlue)
+                    Icon(Icons.Outlined.Analytics, contentDescription = null, modifier = Modifier.size(16.dp), tint = accentBlue)
                     Spacer(Modifier.width(4.dp))
-                    Text("Telemetry", fontSize = 13.sp, fontWeight = FontWeight.Bold, color = DepEdBlue)
+                    Text("Telemetry", fontSize = 13.sp, fontWeight = FontWeight.Bold, color = accentBlue)
                 }
             }
         }
